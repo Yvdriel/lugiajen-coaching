@@ -34,7 +34,7 @@
 | 8  | Competitions | ✅ | Ch5 |
 | 9  | Athlete stats overview | ✅ | Ch5–8 |
 | 10 | Public athlete viewer portal | ✅ | Ch4 + 5/6/7/8/9 |
-| 11 | PDF export | ⬜ | Ch6/7/9 |
+| 11 | PDF export | ✅ | Ch6/7/9 |
 | 12 | Polish (mobile / offline / hardening) | ⬜ | all |
 
 ---
@@ -394,24 +394,37 @@ shown on coach page, **absent** in portal; rotation old→404/new→200; 429 aft
 ---
 
 ## Ch11 — PDF export
-**Status:** ⬜ · **Depends on:** Ch6/7/9 · **Fan-out:** Medium (Node-runtime seam first, then 3 templates parallel)
+**Status:** ✅ · **Depends on:** Ch6/7/9 · **Fan-out:** Medium (Node-runtime seam first, then 3 templates parallel)
 **Libs to context7:** @react-pdf/renderer (App Router route handler, serverExternalPackages)
 
 **Tasks**
-- [ ] PDF module isolated (never imported by client); set `serverExternalPackages` + `runtime = 'nodejs'`.
-- [ ] Branded A4 feedback-form PDF (matches Lu Gia Jen form design).
-- [ ] Scoring-card summary PDF.
-- [ ] Athlete one-pager PDF.
-- [ ] `app/api/**/pdf/route.ts` handlers using `renderToStream`/`renderToBuffer`.
-- [ ] Coach PDF routes check session; any public one-pager validates `view_token`.
-- [ ] Print buttons wired into the relevant tabs.
+- [x] PDF module isolated (never imported by client); set `serverExternalPackages` + `runtime = 'nodejs'`.
+- [x] Branded A4 feedback-form PDF (matches Lu Gia Jen form design).
+- [x] Scoring-card summary PDF.
+- [x] Athlete one-pager PDF.
+- [x] `app/api/**/pdf/route.ts` handlers using `renderToStream`/`renderToBuffer`.
+- [x] Coach PDF routes check session; any public one-pager validates `view_token`.
+- [x] Print buttons wired into the relevant tabs.
 
 **Done when**
-- [ ] Each route returns a valid PDF matching brand.
-- [ ] No `ba.Component is not a constructor` / reconciler bundling error.
-- [ ] Auth / token checks enforced.
+- [x] Each route returns a valid PDF matching brand.
+- [x] No `ba.Component is not a constructor` / reconciler bundling error.
+- [x] Auth / token checks enforced.
 
-**Session log:**
+**Session log:** 2026-06-15 · `main` · `@react-pdf/renderer` + `next.config.ts`
+`serverExternalPackages: ["@react-pdf/renderer"]` (context7-confirmed reconciler-bundling fix). Server-
+only `lib/pdf/*`: shared branded `styles.tsx` (monochrome hex, **Helvetica** built-in — no
+`Font.register`), pure `feedback-sections.ts` (+test), three docs (feedback A4 / scoring summary /
+athlete one-pager), `http.ts` (`assertCoach` 401, `renderPdf` cast seam, `pdfResponse`), `load.ts`
+(one-pager assembly via `buildAthleteStats`). Four nodejs route handlers `app/api/**/pdf/route.ts`
+(`createElement` → `route.ts`, no JSX): 3 coach (session) + 1 public (`view_token`). Print buttons
+(plain `<a target=_blank>`) on feedback detail, scoring tab (per kata), overview tab, + portal
+("Download PDF"). **Decisions:** Helvetica (zero-config, "system font stack"); `renderPdf` centralizes
+the `renderToBuffer` element-type + Uint8Array→BodyInit casts; one-pager hides physicalNotes in the
+public variant (mirrors portal `mode`). Verified (HTTP): all 4 routes 200 `application/pdf` `%PDF-`
+(`file` → "PDF document, 1 pages"); `pdftotext` shows brand + title + athlete line + stats; no-session
+coach routes → 401; bad token → 404; isolation grep — no client component imports `lib/pdf`.
+typecheck/lint/**36 tests** (+4 feedback-sections)/build clean. `docs/specs/ch11-pdf.md`.
 
 ---
 

@@ -1,0 +1,31 @@
+import { createElement } from "react";
+import { AthleteDocument } from "@/lib/pdf/athlete-document";
+import { pdfResponse, renderPdf, safeName } from "@/lib/pdf/http";
+import { loadOnePager } from "@/lib/pdf/load";
+import { getAthleteByViewToken } from "@/lib/queries/athletes";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+// Public one-pager — validates the view_token (no session). Mirrors the portal's
+// mode="public": physical notes are omitted.
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ token: string }> },
+) {
+  const { token } = await params;
+  const athlete = await getAthleteByViewToken(token);
+  if (!athlete) return new Response("Not found", { status: 404 });
+
+  const { age, categories, stats } = await loadOnePager(athlete);
+  const buffer = await renderPdf(
+    createElement(AthleteDocument, {
+      athlete,
+      age,
+      categories,
+      stats,
+      includePhysicalNotes: false, // public — no physical notes
+    }),
+  );
+  return pdfResponse(buffer, `overzicht-${safeName(athlete.lastName)}.pdf`);
+}

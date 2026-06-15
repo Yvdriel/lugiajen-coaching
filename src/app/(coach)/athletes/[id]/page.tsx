@@ -150,6 +150,16 @@ export default async function AthletePage({
         </TabsList>
 
         <TabsContent value="overview" className="pt-4">
+          <div className="mb-4 flex justify-end">
+            <a
+              href={`/api/athletes/${a.id}/pdf`}
+              target="_blank"
+              rel="noopener"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              {nl.common.pdf}
+            </a>
+          </div>
           <StatsOverview
             stats={stats}
             physical={{
@@ -219,13 +229,21 @@ export default async function AthletePage({
 
               {selectedKataId ? (
                 <div className="flex flex-col gap-6">
-                  <div>
+                  <div className="flex gap-2">
                     <Link
                       href={`/athletes/${a.id}/kata/${selectedKataId}/score`}
                       className={buttonVariants({ size: "sm" })}
                     >
                       {nl.scoring.newCard}
                     </Link>
+                    <a
+                      href={`/api/athletes/${a.id}/scoring/${selectedKataId}/pdf`}
+                      target="_blank"
+                      rel="noopener"
+                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                    >
+                      {nl.common.pdf}
+                    </a>
                   </div>
 
                   <ScoringHistoryPanel history={history} />

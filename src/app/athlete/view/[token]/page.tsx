@@ -134,6 +134,16 @@ export default async function PortalPage({
         </TabsList>
 
         <TabsContent value="overview" className="pt-4">
+          <div className="mb-4 flex justify-end">
+            <a
+              href={`/api/athlete/view/${token}/pdf`}
+              target="_blank"
+              rel="noopener"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              {nl.common.downloadPdf}
+            </a>
+          </div>
           <StatsOverview
             stats={stats}
             physical={{

@@ -16,6 +16,13 @@ export const nl = {
     all: "Alle",
     year: "jaar",
     loading: "Bezig…",
+    pdf: "PDF",
+    downloadPdf: "Download PDF",
+  },
+  pdf: {
+    feedbackTitle: "Feedbackgesprek",
+    scoringTitle: "Scorekaart",
+    athleteTitle: "Atletenoverzicht",
   },
   athlete: {
     new: "Nieuwe atleet",

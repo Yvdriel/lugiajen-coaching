@@ -49,12 +49,22 @@ export default async function FeedbackDetailPage({
           </h1>
         </div>
         {!editing ? (
-          <Link
-            href={`/athletes/${a.id}/feedback/${form.id}?edit=1`}
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            {nl.common.edit}
-          </Link>
+          <div className="flex gap-2">
+            <a
+              href={`/api/athletes/${a.id}/feedback/${form.id}/pdf`}
+              target="_blank"
+              rel="noopener"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              {nl.common.pdf}
+            </a>
+            <Link
+              href={`/athletes/${a.id}/feedback/${form.id}?edit=1`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              {nl.common.edit}
+            </Link>
+          </div>
         ) : null}
       </div>
 
