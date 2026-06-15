@@ -24,7 +24,7 @@
 
 | Ch | Title | Status | Depends on |
 |----|-------|--------|------------|
-| 1  | Scaffold, tooling & data-layer wiring | ⬜ | Prereqs |
+| 1  | Scaffold, tooling & data-layer wiring | ✅ | Prereqs |
 | 2  | Data model, migrations & seed | ⬜ | Ch1 |
 | 3  | Auth & app shell | ⬜ | Ch2 |
 | 4  | Athlete CRUD & profile shell | ⬜ | Ch3 |
@@ -41,10 +41,14 @@
 
 ## Prerequisites (user actions — do before Ch1/Ch2)
 
-- [ ] Create a **Neon** project.
-- [ ] Put the **pooled** connection string in `.env` as `DATABASE_URL`.
-- [ ] Put the **direct / unpooled** connection string in `.env` as `DATABASE_URL_UNPOOLED`.
-- [ ] Generate a Better Auth secret → `.env` as `BETTER_AUTH_SECRET` (+ `BETTER_AUTH_URL`).
+> **Local dev (Ch1):** done via Docker, not Neon cloud. `pnpm db:up` runs Postgres +
+> a local Neon HTTP/WS proxy; `.env` points at it (`NEON_LOCAL=true`). The Neon-cloud
+> boxes below remain for **production deploy** (Vercel).
+
+- [ ] Create a **Neon** project. _(prod only; local uses docker-compose)_
+- [x] Put the **pooled** connection string in `.env` as `DATABASE_URL`. _(local docker)_
+- [x] Put the **direct / unpooled** connection string in `.env` as `DATABASE_URL_UNPOOLED`. _(local docker)_
+- [x] Generate a Better Auth secret → `.env` as `BETTER_AUTH_SECRET` (+ `BETTER_AUTH_URL`).
 - [ ] (Later, Ch10) Decide rate-limit backend (Vercel middleware / Upstash).
 - [ ] (Later) Create Vercel project for deploy.
 
@@ -95,27 +99,32 @@ messages/nl.ts   drizzle.config.ts   docs/specs/chNN-*.md
 # Chapters
 
 ## Ch1 — Scaffold, tooling & data-layer wiring
-**Status:** ⬜ not started · **Depends on:** Prereqs · **Fan-out:** Low (init serial; shadcn after Tailwind)
+**Status:** ✅ done · **Depends on:** Prereqs · **Fan-out:** Low (init serial; shadcn after Tailwind)
 **Libs to context7:** Next.js, shadcn/Tailwind v4, Drizzle, `@neondatabase/serverless`, Vitest
 
 **Tasks**
-- [ ] Scaffold Next.js 16 (TS, App Router, `src/`, Turbopack, pnpm).
-- [ ] Tailwind v4 + `shadcn` init in **CSS-variables** mode; blank `tailwind.config` (v4 CSS-first).
-- [ ] Brand tokens (monochrome palette from `CLAUDE.md`) in `@theme`; Inter font; base global CSS.
-- [ ] `src/lib/db.ts` (neon-http, pooled URL) + `src/lib/db.serverless.ts` (Pool + `ws`).
-- [ ] `drizzle.config.ts` (postgresql, unpooled URL) + empty `src/db/schema.ts`.
-- [ ] Env validation module (zod) for `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`.
-- [ ] Vitest wired (config + sample test runs).
-- [ ] `package.json` scripts: `dev build lint typecheck format test db:generate db:migrate db:seed`.
-- [ ] `.gitignore`, `.env.example`; `git init` + first commit.
-- [ ] Write `docs/specs/ch01..ch12-*.md` stubs (one per chapter, seeded from this file's sections).
+- [x] Scaffold Next.js 16 (TS, App Router, `src/`, Turbopack, pnpm). _(next 16.2.9 / react 19.2.4)_
+- [x] Tailwind v4 + `shadcn` init in **CSS-variables** mode; blank `tailwind.config` (v4 CSS-first). _(shadcn 4.x, preset base-nova, neutral)_
+- [x] Brand tokens (monochrome palette from `CLAUDE.md`) in `@theme`; Inter font; base global CSS.
+- [x] `src/lib/db.ts` (neon-http, pooled URL) + `src/lib/db.serverless.ts` (Pool + `ws`).
+- [x] `drizzle.config.ts` (postgresql, unpooled URL) + empty `src/db/schema.ts`.
+- [x] Env validation module (zod) for `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`.
+- [x] Vitest wired (config + sample test runs).
+- [x] `package.json` scripts: `dev build lint typecheck format test db:generate db:migrate db:seed` _(+ `db:up`/`db:down`)_.
+- [x] `.gitignore`, `.env.example`; `git init` + first commit. _(repo already on GitHub `Yvdriel/lugiajen-coaching`)_
+- [x] Write `docs/specs/ch01..ch12-*.md` stubs (one per chapter, seeded from this file's sections).
 
 **Done when**
-- [ ] `pnpm dev` boots a page.
-- [ ] `src/lib/db.ts` connects to Neon (a trivial `SELECT 1` succeeds).
-- [ ] `pnpm typecheck && pnpm lint && pnpm test` all pass clean.
+- [x] `pnpm dev` boots a page. _(GET / 200, brand page renders)_
+- [x] `src/lib/db.ts` connects to Neon (a trivial `SELECT 1` succeeds). _(both drivers, via local proxy)_
+- [x] `pnpm typecheck && pnpm lint && pnpm test` all pass clean.
 
-**Session log:** _(date · branch/PR · notes)_
+**Session log:** 2026-06-15 · `main` · Local dev = Docker Postgres + local Neon proxy
+(`ghcr.io/timowilhelm/local-neon-http-proxy`) so neon-http/neon-serverless run
+unchanged local↔prod (gated on `NEON_LOCAL`). `db:migrate` is a programmatic
+migrator (`src/db/migrate.ts`) — drizzle-kit's driver auto-select didn't honor the
+local proxy. shadcn preset **base-nova** (uses `@base-ui/react`, not Radix); font Inter.
+See `docs/specs/ch01-scaffold.md`.
 
 ---
 

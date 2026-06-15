@@ -1,0 +1,50 @@
+# Local dev data layer for Lu Gia Jen.
+#
+# Why a proxy? Convention 1 (BUILD-PLAN.md) mandates the Neon serverless drivers
+# (drizzle-orm/neon-http + neon-serverless). Those speak Neon's HTTP/WS wire
+# protocol, NOT raw Postgres TCP. To run that exact code against a local Postgres
+# we front it with a local Neon HTTP/WS proxy. Result: runtime db code is
+# byte-identical local <-> Neon prod; only `neonConfig` overrides differ
+# (gated on NEON_LOCAL, see src/lib/db.ts / db.serverless.ts).
+#
+# drizzle-kit (migrate/generate) talks straight to Postgres:5432 (no proxy).
+#
+#   pnpm db:up    -> start postgres + proxy
+#   pnpm db:down  -> stop (keeps volume)
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: lugiajen-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lugiajen
+    ports:
+      - "5432:5432"
+    volumes:
+      - lugiajen-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d lugiajen"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  # Local Neon HTTP/WS proxy: serves /sql (HTTP) and /v2 (WebSocket) on :4444,
+  # forwarding to the postgres service. The runtime neon-http / neon-serverless
+  # drivers point at this when NEON_LOCAL=true.
+  neon-proxy:
+    image: ghcr.io/timowilhelm/local-neon-http-proxy:main
+    container_name: lugiajen-neon-proxy
+    restart: unless-stopped
+    environment:
+      PG_CONNECTION_STRING: postgres://postgres:postgres@postgres:5432/lugiajen
+    ports:
+      - "4444:4444"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  lugiajen-pgdata:
