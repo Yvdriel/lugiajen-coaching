@@ -28,7 +28,7 @@
 | 2  | Data model, migrations & seed | ✅ | Ch1 |
 | 3  | Auth & app shell | ✅ | Ch2 |
 | 4  | Athlete CRUD & profile shell | ✅ | Ch3 |
-| 5  | Kata repertoire & scoring cards | ⬜ | Ch4 |
+| 5  | Kata repertoire & scoring cards | ✅ | Ch4 |
 | 6  | Scoring-card visualizations | ⬜ | Ch5 |
 | 7  | Feedback forms (U12 / U16) | ⬜ | Ch4 |
 | 8  | Competitions | ⬜ | Ch5 |
@@ -216,22 +216,30 @@ card refactored to shared `display/athlete-card`. `messages/nl.ts` → `src/mess
 ---
 
 ## Ch5 — Kata repertoire & scoring cards (form + append-only history)
-**Status:** ⬜ · **Depends on:** Ch4 · **Fan-out:** Medium (athlete_kata mgmt // scoring form // queries+actions)
+**Status:** ✅ done · **Depends on:** Ch4 · **Fan-out:** Medium (athlete_kata mgmt // scoring form // queries+actions)
 **Libs to context7:** Drizzle window functions, Next.js server actions
 
 **Tasks**
-- [ ] `athlete_kata` management UI (assign kata, round_order, is_competition_kata, proficiency 1–10, per-kata notes) → **Kata tab**.
-- [ ] `src/lib/queries/scoring.ts`: canonical latest / previous / trend window queries (convention 5).
-- [ ] Scoring-card form `/athletes/[id]/kata/[kataId]/score`: 12 WKF criteria + overall + 3 note fields; **previous score shown grayed beside each input with ↑↓→ delta**.
-- [ ] Save = **append-only INSERT** (never UPDATE).
-- [ ] **Scorekaarten tab**: bulk history table (data only; rich viz is Ch6).
+- [x] `athlete_kata` management UI (assign kata, round_order, is_competition_kata, proficiency 1–10, per-kata notes) → **Kata tab**. _(assign form + per-row edit via `?editKata=` + remove)_
+- [x] `src/lib/queries/scoring.ts`: canonical latest / previous / trend window queries (convention 5). _(`getScoringHistory` / `getLatestScoringCard` / `getLatestCardsPerKata` ROW_NUMBER)_
+- [x] Scoring-card form `/athletes/[id]/kata/[kataId]/score`: 12 WKF criteria + overall + note fields; **previous score shown grayed beside each input with ↑↓→ delta**. _(all 4 text fields; numerics prefill previous, live `useWatch` delta)_
+- [x] Save = **append-only INSERT** (never UPDATE).
+- [x] **Scorekaarten tab**: bulk history table (data only; rich viz is Ch6). _(criteria × dates, deltas vs next-older; kata chips via `?scoreKata=`)_
 
 **Done when**
-- [ ] Assign kata to an athlete.
-- [ ] Save 2+ assessments for one athlete+kata; second save shows correct deltas.
-- [ ] History lists all rows newest-first; DB shows multiple rows (no UPDATEs).
+- [x] Assign kata to an athlete. _(assign form renders unassigned options; action inserts athlete_kata)_
+- [x] Save 2+ assessments for one athlete+kata; second save shows correct deltas. _(DB read-back: count 2→3→2; Kime `9 ↑+2 / 7 ↑+2 / 5`)_
+- [x] History lists all rows newest-first; DB shows multiple rows (no UPDATEs). _(saveScoringCard only INSERTs; history ordered assessment_date+created_at DESC)_
 
-**Session log:**
+**Session log:** 2026-06-15 · `main` · Criteria single-sourced in `features/scoring/criteria.ts`
+(13 numeric {key,group} + 4 text), compile-checked against the table insert type; form/table/
+schema/nl all derive from it. Scoring form = client RHF + `useWatch` for live deltas, numerics
+prefill the previous card (grayed `vorige: N`); save action append-only INSERTs then redirects to
+`?tab=scoring&scoreKata=…`. Pure `display/{kata-repertoire,score-history-table}` (mode prop,
+`actions` render-slot) reused by Ch10. Tabs stay uncontrolled — deep-linked via `?tab`/`?scoreKata`/
+`?editKata` read server-side (chip/edit links do full navigations). Window latest-per-kata via
+ROW_NUMBER subquery. Hardened `getAthleteById` to 404 (not 500) on non-uuid path segments. See
+`docs/specs/ch05-scoring.md`.
 
 ---
 

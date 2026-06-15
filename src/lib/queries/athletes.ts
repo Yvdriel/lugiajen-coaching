@@ -120,7 +120,12 @@ export async function getAthletesList(
   return items;
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getAthleteById(id: string) {
+  // Malformed path segments shouldn't 500 on the uuid cast — treat as not found.
+  if (!UUID_RE.test(id)) return null;
   const [a] = await db.select().from(athletes).where(eq(athletes.id, id));
   return a ?? null;
 }
