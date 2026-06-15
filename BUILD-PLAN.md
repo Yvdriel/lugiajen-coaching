@@ -35,7 +35,7 @@
 | 9  | Athlete stats overview | ✅ | Ch5–8 |
 | 10 | Public athlete viewer portal | ✅ | Ch4 + 5/6/7/8/9 |
 | 11 | PDF export | ✅ | Ch6/7/9 |
-| 12 | Polish (mobile / offline / hardening) | ⬜ | all |
+| 12 | Polish (mobile / offline / hardening) | ✅ | all |
 
 ---
 
@@ -429,21 +429,38 @@ typecheck/lint/**36 tests** (+4 feedback-sections)/build clean. `docs/specs/ch11
 ---
 
 ## Ch12 — Polish (mobile / offline / hardening)
-**Status:** ⬜ · **Depends on:** all · **Fan-out:** High (mobile // loading+error // offline // hardening // docs)
+**Status:** ✅ · **Depends on:** all · **Fan-out:** High (mobile // loading+error // offline // hardening // docs)
 
 **Tasks**
-- [ ] Mobile optimization — scoring + competition entry forms first.
-- [ ] Loading + error states on all async ops.
-- [ ] Offline-tolerance for competition day (service worker / local-state buffering).
-- [ ] Rate-limit hardening; prod + backup notes in `docs/`.
-- [ ] Accessibility pass + empty states.
+- [x] Mobile optimization — scoring + competition entry forms first.
+- [x] Loading + error states on all async ops.
+- [x] Offline-tolerance for competition day (service worker / local-state buffering).
+- [x] Rate-limit hardening; prod + backup notes in `docs/`.
+- [x] Accessibility pass + empty states.
 
 **Done when**
-- [ ] Scoring + competition flows usable one-handed on phone.
-- [ ] Graceful loading/error everywhere.
-- [ ] Competition entry survives a network blip.
+- [x] Scoring + competition flows usable one-handed on phone.
+- [x] Graceful loading/error everywhere.
+- [x] Competition entry survives a network blip.
 
-**Session log:**
+**Session log:** 2026-06-15 · `main` · Survey found forms already responsive — gap was the **shell**.
+Responsive nav: extracted `NAV_LINKS`, `Sidebar` → `hidden md:flex`, new client `MobileNav`
+(`md:hidden` sticky bar + hamburger → a11y drawer: aria-modal/label, Esc, focus, `usePathname`
+active); `viewport` export added. **States:** root `error.tsx`/`global-error.tsx`/`not-found.tsx`
+(branded Dutch) + shared `LoadingScreen` via `(coach)/loading.tsx`. **Offline (user choice =
+local-state buffering, no SW):** pure `competition/wizard-draft.ts` (+test) serializes the wizard to
+localStorage; the wizard rehydrates on mount (`skipNextSave` guard) and every action is `try/catch` →
+retryable error, draft preserved — survives a reload/blip. **Hardening:** global `next.config.ts`
+`headers()` (nosniff, `X-Frame-Options: DENY`, `Referrer-Policy`, HSTS); `docs/production.md` (deploy,
+Neon backups, Upstash swap, public-PDF-limiter + CSP + pagination follow-ups). **Deviation:** a
+`loading.tsx` makes a route stream, so programmatic `notFound()` flushes **200** instead of 404 — so
+the portal's `loading.tsx` was **removed** (preserves Ch10's committed "invalid token 404s"); authed
+coach detail pages keep streaming-loading and their cosmetic `notFound→200` (no public/SEO impact,
+documented). Pagination intentionally skipped (not a Ch12 task; club-scale data). Verified (HTTP):
+viewport meta + `md:hidden` bar + hamburger aria-label + `hidden md:flex` sidebar present; all 4
+security headers on `/dashboard`, portal still `no-referrer`; bogus route + portal bad token →
+**404**; branded not-found renders. typecheck/lint/**39 tests** (+3 wizard-draft)/build clean.
+`docs/specs/ch12-polish.md`.
 
 ---
 
@@ -452,4 +469,6 @@ typecheck/lint/**36 tests** (+4 feedback-sections)/build clean. `docs/specs/ch11
 - **Per chapter:** the chapter's **Done when** gate (typecheck + lint + Vitest + manual flow + DB read-back).
 - **Data integrity:** Vitest for `categories.ts`, scoring window queries, stats aggregations.
 - **End-to-end smoke (after Ch9):** seed → log in → create athlete → assign kata → 2 scoring cards (verify deltas) → feedback form → competition + results → check Overzicht numbers → open public viewer link.
-- **Pre-deploy (after Ch11/12):** PDF routes return valid files; public viewer `noindex` + rate-limit; mobile pass on scoring + competition forms.
+- **Pre-deploy (after Ch11/12):** ✅ PDF routes return valid files; public viewer `noindex` + rate-limit; mobile pass on scoring + competition forms. Remaining manual step: create the Vercel project + run `db:migrate`/`db:seed` against prod (see `docs/production.md`).
+
+> **All 12 chapters ✅.** App is feature-complete. Production hardening + deploy notes: `docs/production.md`.

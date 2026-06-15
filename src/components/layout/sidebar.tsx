@@ -1,21 +1,24 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { NAV_LINKS } from "./nav-links";
 import { NavUser } from "./nav-user";
-
-const NAV_LINKS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/athletes", label: "Atleten" },
-  { href: "/competitions", label: "Wedstrijden" },
-];
 
 export function Sidebar({
   userName,
   userEmail,
+  className,
 }: {
   userName: string;
   userEmail: string;
+  className?: string;
 }) {
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-brand-field-bg/40">
+    <aside
+      className={cn(
+        "flex w-60 shrink-0 flex-col border-r border-border bg-brand-field-bg/40",
+        className,
+      )}
+    >
       <div className="px-4 py-5">
         <span className="font-heading text-lg font-semibold">Lu Gia Jen</span>
         <p className="text-xs text-muted-foreground">Coaching</p>

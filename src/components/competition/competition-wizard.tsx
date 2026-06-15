@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,19 +18,16 @@ import {
 } from "@/features/competitions/schema";
 import type { AthleteWithRepertoire } from "@/lib/queries/competitions";
 import { nl } from "@/messages/nl";
+import {
+  DRAFT_KEY,
+  type Draft,
+  parseDraft,
+  serializeDraft,
+  type WizardEntry,
+} from "./wizard-draft";
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-
-type Draft = Record<string, string>;
-
-type WizardEntry = {
-  id: string;
-  athleteId: string;
-  athleteName: string;
-  repertoire: { kataId: string; kataName: string }[];
-  draft: Draft;
-};
 
 function blankDraft(category: string): Draft {
   const d: Draft = { category };
@@ -76,6 +73,60 @@ export function CompetitionWizard({
   // Steps 2–4 — per-entry drafts.
   const [entries, setEntries] = useState<WizardEntry[]>([]);
 
+  // Offline buffering (Ch12): rehydrate any in-progress wizard from localStorage
+  // on mount, then mirror state to it on every change — so a reload or network
+  // blip never loses entry work. `skipNextSave` avoids clobbering the stored draft
+  // with the initial empty state before the restore commit lands.
+  const skipNextSave = useRef(true);
+  useEffect(() => {
+    const draft = parseDraft(
+      typeof localStorage === "undefined"
+        ? null
+        : localStorage.getItem(DRAFT_KEY),
+    );
+    if (!draft) return;
+    // One-time hydration from localStorage — render empty on the server/first
+    // paint, then restore on the client (SSR-safe; not a render-loop setState).
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setStep(draft.step);
+    setCompetitionId(draft.competitionId);
+    setComp(draft.comp as typeof comp);
+    setCategory(draft.category);
+    setSelected(new Set(draft.selected));
+    setEntries(draft.entries);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+
+  useEffect(() => {
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
+    }
+    try {
+      localStorage.setItem(
+        DRAFT_KEY,
+        serializeDraft({
+          step,
+          competitionId,
+          comp,
+          category,
+          selected: [...selected],
+          entries,
+        }),
+      );
+    } catch {
+      // storage unavailable (private mode / quota) — non-fatal.
+    }
+  }, [step, competitionId, comp, category, selected, entries]);
+
+  function clearDraft() {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // ignore
+    }
+  }
+
   function setDraft(entryId: string, key: string, value: string) {
     setEntries((prev) =>
       prev.map((e) =>
@@ -105,18 +156,23 @@ export function CompetitionWizard({
     fd.set("competitionType", comp.competitionType);
     fd.set("location", comp.location);
     fd.set("notes", comp.notes);
-    const res = await createCompetition({ ok: false }, fd);
-    setBusy(false);
-    if (!res.ok || !res.id) {
-      setError(
-        res.fieldErrors
-          ? Object.values(res.fieldErrors)[0]
-          : (res.message ?? "Er ging iets mis."),
-      );
-      return;
+    try {
+      const res = await createCompetition({ ok: false }, fd);
+      if (!res.ok || !res.id) {
+        setError(
+          res.fieldErrors
+            ? Object.values(res.fieldErrors)[0]
+            : (res.message ?? "Er ging iets mis."),
+        );
+        return;
+      }
+      setCompetitionId(res.id);
+      setStep(1);
+    } catch {
+      setError(nl.error.network);
+    } finally {
+      setBusy(false);
     }
-    setCompetitionId(res.id);
-    setStep(1);
   }
 
   async function submitAthletes() {
@@ -126,46 +182,62 @@ export function CompetitionWizard({
     if (competitionId) fd.set("competitionId", competitionId);
     fd.set("category", category);
     for (const id of selected) fd.append("athleteId", id);
-    const res = await addCompetitionAthletes({ ok: false }, fd);
-    setBusy(false);
-    if (!res.ok || !res.entries) {
-      setError(
-        res.fieldErrors
-          ? Object.values(res.fieldErrors)[0]
-          : (res.message ?? "Er ging iets mis."),
+    try {
+      const res = await addCompetitionAthletes({ ok: false }, fd);
+      if (!res.ok || !res.entries) {
+        setError(
+          res.fieldErrors
+            ? Object.values(res.fieldErrors)[0]
+            : (res.message ?? "Er ging iets mis."),
+        );
+        return;
+      }
+      const byId = new Map(athletes.map((a) => [a.id, a]));
+      setEntries(
+        res.entries.map((e) => {
+          const a = byId.get(e.athleteId);
+          return {
+            id: e.id,
+            athleteId: e.athleteId,
+            athleteName: a ? `${a.firstName} ${a.lastName}` : "",
+            repertoire: a?.repertoire ?? [],
+            draft: blankDraft(category),
+          };
+        }),
       );
-      return;
+      setStep(2);
+    } catch {
+      setError(nl.error.network);
+    } finally {
+      setBusy(false);
     }
-    const byId = new Map(athletes.map((a) => [a.id, a]));
-    setEntries(
-      res.entries.map((e) => {
-        const a = byId.get(e.athleteId);
-        return {
-          id: e.id,
-          athleteId: e.athleteId,
-          athleteName: a ? `${a.firstName} ${a.lastName}` : "",
-          repertoire: a?.repertoire ?? [],
-          draft: blankDraft(category),
-        };
-      }),
-    );
-    setStep(2);
   }
 
   async function next() {
     // Steps 2–4 persist the current drafts before advancing.
     setBusy(true);
     setError(null);
-    await persistEntries();
-    setBusy(false);
-    setStep((s) => s + 1);
+    try {
+      await persistEntries();
+      setStep((s) => s + 1);
+    } catch {
+      setError(nl.error.network); // stay on the step; draft is buffered
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function finish() {
     setBusy(true);
     setError(null);
-    await persistEntries();
-    if (competitionId) router.push(`/competitions/${competitionId}`);
+    try {
+      await persistEntries();
+      clearDraft();
+      if (competitionId) router.push(`/competitions/${competitionId}`);
+    } catch {
+      setError(nl.error.network);
+      setBusy(false);
+    }
   }
 
   function toggle(id: string) {

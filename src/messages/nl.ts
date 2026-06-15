@@ -6,6 +6,8 @@ export const nl = {
     athletes: "Atleten",
     competitions: "Wedstrijden",
     signOut: "Uitloggen",
+    openMenu: "Menu openen",
+    closeMenu: "Menu sluiten",
   },
   common: {
     save: "Opslaan",
@@ -23,6 +25,15 @@ export const nl = {
     feedbackTitle: "Feedbackgesprek",
     scoringTitle: "Scorekaart",
     athleteTitle: "Atletenoverzicht",
+  },
+  error: {
+    title: "Er ging iets mis",
+    body: "Probeer het opnieuw. Blijft het misgaan, herlaad de pagina.",
+    retry: "Opnieuw proberen",
+    notFound: "Niet gevonden",
+    notFoundBody: "Deze pagina bestaat niet (meer).",
+    backToDashboard: "Terug naar dashboard",
+    network: "Netwerkfout — je gegevens zijn bewaard. Probeer opnieuw.",
   },
   athlete: {
     new: "Nieuwe atleet",
