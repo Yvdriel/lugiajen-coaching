@@ -30,7 +30,7 @@
 | 4  | Athlete CRUD & profile shell | ✅ | Ch3 |
 | 5  | Kata repertoire & scoring cards | ✅ | Ch4 |
 | 6  | Scoring-card visualizations | ✅ | Ch5 |
-| 7  | Feedback forms (U12 / U16) | ⬜ | Ch4 |
+| 7  | Feedback forms (U12 / U16) | ✅ | Ch4 |
 | 8  | Competitions | ⬜ | Ch5 |
 | 9  | Athlete stats overview | ⬜ | Ch5–8 |
 | 10 | Public athlete viewer portal | ⬜ | Ch4 + 5/6/7/8/9 |
@@ -272,22 +272,30 @@ wrappers) — verified via wrapper/title/colour markup + a clean `pnpm build`. S
 ---
 
 ## Ch7 — Feedback forms (U12 / U16)
-**Status:** ⬜ · **Depends on:** Ch4 (independent of Ch5/6) · **Fan-out:** Medium (U12 // U16 // auto-detect // Feedback tab)
+**Status:** ✅ done · **Depends on:** Ch4 (independent of Ch5/6) · **Fan-out:** Medium (U12 // U16 // auto-detect // Feedback tab)
 **Libs to context7:** Next.js server actions, shadcn Form
 
 **Tasks**
-- [ ] `forms/feedback-form-u12.tsx` (exact U12 fields per `CLAUDE.md`).
-- [ ] `forms/feedback-form-u16.tsx` (exact U16 fields per `CLAUDE.md`).
-- [ ] Auto-detect U12/U16 by athlete age **with manual override**.
-- [ ] `/athletes/[id]/feedback/new` + `/feedback/[feedbackId]` view/edit; Side A (self) / Side B (coach) sections, live-fillable.
-- [ ] **Feedback tab**: chronological list (date, meeting #, season, type) + expand.
+- [x] `forms/feedback-form-u12.tsx` (exact U12 fields per `CLAUDE.md`). _(shares `feedback-fields` shell)_
+- [x] `forms/feedback-form-u16.tsx` (exact U16 fields per `CLAUDE.md`). _(self-ratings + process/performance/outcome goals)_
+- [x] Auto-detect U12/U16 by athlete age **with manual override**. _(`recommendedFormType(age)` + `?type=` toggle)_
+- [x] `/athletes/[id]/feedback/new` + `/feedback/[feedbackId]` view/edit; Side A (self) / Side B (coach) sections, live-fillable. _(edit via `?edit=1`)_
+- [x] **Feedback tab**: chronological list (date, meeting #, season, type) + expand. _(`display/feedback-list` → detail page)_
 
 **Done when**
-- [ ] Both variants save and re-display all fields.
-- [ ] Correct template auto-picked per age; override works.
-- [ ] Tab list + expand works.
+- [x] Both variants save and re-display all fields. _(U12 read-only detail + U16 DB-insert render verified; create=INSERT / edit=UPDATE)_
+- [x] Correct template auto-picked per age; override works. _(sample age 14 → U16; `?type=U12` swaps)_
+- [x] Tab list + expand works. _(list 200 with Bekijken → detail 200)_
 
-**Session log:**
+**Session log:** 2026-06-15 · `main` · No new library — reused the Ch4 native-FormData + RHF +
+server-authoritative zod pattern (base-nova still has no shadcn `Form`) and the Ch5 pure
+display-contract. One `feedbackSchema` (header required, all content optional); each template posts
+only its fields, the action nulls the rest (`formType` immutable on edit). Feedback forms are
+**editable** (create=INSERT, edit=UPDATE) unlike append-only scoring. Two thin template components
+over a shared `forms/feedback-fields` shell (HeaderFields/CoachSection/ActionItems + RHF wiring).
+Auto-detect `age <= 12 ? U12 : U16` + `?type=` override; `currentSeason()` default. Pure
+`display/{feedback-list,feedback-detail}` (Ch10 reuse). New `lib/queries/feedback.ts`
+(uuid-guarded). Vitest for form-type/season (21 total). See `docs/specs/ch07-feedback.md`.
 
 ---
 

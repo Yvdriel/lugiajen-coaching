@@ -6,6 +6,7 @@ import { ScoreRadarChart } from "@/components/charts/score-radar-chart";
 import { ScoreTrendChart } from "@/components/charts/score-trend-chart";
 import { TrendSparkline } from "@/components/charts/trend-sparkline";
 import { AthleteHeader } from "@/components/display/athlete-header";
+import { FeedbackList } from "@/components/display/feedback-list";
 import {
   KataRepertoire,
   type KataRepertoireItem,
@@ -20,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NUMERIC_CRITERIA, formatDelta } from "@/features/scoring/criteria";
 import { calculateAge, getCategories } from "@/lib/categories";
 import { getAthleteById, getAthleteNotes } from "@/lib/queries/athletes";
+import { getFeedbackForms } from "@/lib/queries/feedback";
 import { getAthleteKata, getUnassignedKata } from "@/lib/queries/kata";
 import {
   getLatestCardsPerKata,
@@ -52,13 +54,14 @@ export default async function AthletePage({
 
   const activeTab: Tab = TABS.includes(tab as Tab) ? (tab as Tab) : "overview";
 
-  const [notes, repertoire, unassigned, latestCards, seriesByKata] =
+  const [notes, repertoire, unassigned, latestCards, seriesByKata, feedback] =
     await Promise.all([
       getAthleteNotes(id),
       getAthleteKata(id),
       getUnassignedKata(id),
       getLatestCardsPerKata(id),
       getScoringSeriesByKata(id),
+      getFeedbackForms(id),
     ]);
 
   const lastDateByKata = new Map(
@@ -297,7 +300,27 @@ export default async function AthletePage({
         </TabsContent>
 
         <TabsContent value="feedback" className="pt-4">
-          <Stub />
+          <div className="flex flex-col gap-4">
+            <div>
+              <Link
+                href={`/athletes/${a.id}/feedback/new`}
+                className={buttonVariants({ size: "sm" })}
+              >
+                {nl.feedback.new}
+              </Link>
+            </div>
+            <FeedbackList
+              items={feedback}
+              actions={(item) => (
+                <Link
+                  href={`/athletes/${a.id}/feedback/${item.id}`}
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
+                  {nl.feedback.view}
+                </Link>
+              )}
+            />
+          </div>
         </TabsContent>
         <TabsContent value="competitions" className="pt-4">
           <Stub />
