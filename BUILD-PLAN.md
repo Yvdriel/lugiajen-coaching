@@ -26,7 +26,7 @@
 |----|-------|--------|------------|
 | 1  | Scaffold, tooling & data-layer wiring | ✅ | Prereqs |
 | 2  | Data model, migrations & seed | ✅ | Ch1 |
-| 3  | Auth & app shell | ⬜ | Ch2 |
+| 3  | Auth & app shell | ✅ | Ch2 |
 | 4  | Athlete CRUD & profile shell | ⬜ | Ch3 |
 | 5  | Kata repertoire & scoring cards | ⬜ | Ch4 |
 | 6  | Scoring-card visualizations | ⬜ | Ch5 |
@@ -160,23 +160,28 @@ migration covers app + BA tables. `db:seed` gated by `SEED=1`; demo coach `coach
 ---
 
 ## Ch3 — Auth & app shell
-**Status:** ⬜ · **Depends on:** Ch2 · **Fan-out:** Low/medium (auth wiring serial; login/layout/dashboard parallel after `getSession`)
+**Status:** ✅ done · **Depends on:** Ch2 · **Fan-out:** Low/medium (auth wiring serial; login/layout/dashboard parallel after `getSession`)
 **Libs to context7:** Better Auth (Next handler, getSession, databaseHooks, nextCookies)
 
 **Tasks**
-- [ ] `src/lib/auth.ts`: drizzleAdapter on **serverless** client, `emailAndPassword`, `databaseHooks.user.create.before` blocking signup unless `SEED=1`, `nextCookies()` as **last** plugin.
-- [ ] `src/app/api/auth/[...all]/route.ts` → `toNextJsHandler`.
-- [ ] Auth client + `(auth)/login` page (Dutch copy) with RHF + typed action.
-- [ ] `(coach)/layout.tsx` guard: `getSession` → `redirect('/login')`.
-- [ ] `components/layout/*` sidebar + nav.
-- [ ] `(coach)/dashboard` page: real quick-stats (active athletes, upcoming competitions), athlete cards, recent activity (last 5–10).
+- [x] `src/lib/auth.ts`: drizzleAdapter on **serverless** client, `emailAndPassword`, `databaseHooks.user.create.before` blocking signup unless `SEED=1`, `nextCookies()` as **last** plugin. _(done Ch2)_
+- [x] `src/app/api/auth/[...all]/route.ts` → `toNextJsHandler`.
+- [x] Auth client + `(auth)/login` page (Dutch copy) with RHF + typed action.
+- [x] `(coach)/layout.tsx` guard: `getSession` → `redirect('/login')`.
+- [x] `components/layout/*` sidebar + nav.
+- [x] `(coach)/dashboard` page: real quick-stats (active athletes, upcoming competitions), athlete cards, recent activity (last 5–10).
 
 **Done when**
-- [ ] Valid coach logs in; bad creds rejected.
-- [ ] Unauthenticated hit on any `(coach)` route redirects to `/login`.
-- [ ] Dashboard renders seeded counts/cards.
+- [x] Valid coach logs in; bad creds rejected. _(HTTP: good creds 200+session cookie, bad creds 401)_
+- [x] Unauthenticated hit on any `(coach)` route redirects to `/login`. _(307; `/` → `/dashboard`)_
+- [x] Dashboard renders seeded counts/cards. _(authed 200: Actieve atleten, Sample Atleet card, Recente activiteit)_
 
-**Session log:**
+**Session log:** 2026-06-15 · `main` · Login = server action (`auth.api.signInEmail`) +
+RHF (`useActionState`, `mode:'onBlur'`); base-nova registry has **no shadcn `form`** →
+RHF direct with Input/Label, resolver = `@hookform/resolvers/standard-schema` (zod 4 is a
+Standard Schema; `zodResolver` types against zod 3). `Button`/`Card` are base-ui (use
+`render`/no `asChild`) → link-buttons via exported `buttonVariants()`. Root `/` → redirect
+`/dashboard`; removed Ch1 `page.test.tsx`. See `docs/specs/ch03-auth.md`.
 
 ---
 
