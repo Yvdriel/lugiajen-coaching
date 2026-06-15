@@ -25,7 +25,7 @@
 | Ch | Title | Status | Depends on |
 |----|-------|--------|------------|
 | 1  | Scaffold, tooling & data-layer wiring | ✅ | Prereqs |
-| 2  | Data model, migrations & seed | ⬜ | Ch1 |
+| 2  | Data model, migrations & seed | ✅ | Ch1 |
 | 3  | Auth & app shell | ⬜ | Ch2 |
 | 4  | Athlete CRUD & profile shell | ⬜ | Ch3 |
 | 5  | Kata repertoire & scoring cards | ⬜ | Ch4 |
@@ -129,29 +129,33 @@ See `docs/specs/ch01-scaffold.md`.
 ---
 
 ## Ch2 — Data model, migrations & seed
-**Status:** ⬜ · **Depends on:** Ch1 · **Fan-out:** High (schema by domain group; parallel-verify each kata row; categories+tests independent)
+**Status:** ✅ done · **Depends on:** Ch1 · **Fan-out:** High (schema by domain group; parallel-verify each kata row; categories+tests independent)
 **Libs to context7:** Drizzle (pg enums/indexes/relations), Better Auth CLI, drizzle-kit
 
 **Tasks**
-- [ ] Schema: `athletes` (+ gender enum, `view_token` unique, `is_active`, timestamps).
-- [ ] Schema: `kata` (+ category enum, split booleans, flex A/B/C enum, sort_order).
-- [ ] Schema: `athlete_kata` (FKs, round_order, is_competition_kata, proficiency, notes).
-- [ ] Schema: `kata_scoring_cards` (12 criteria + overall + note fields) **+ index `(athlete_id, kata_id, assessment_date)`**.
-- [ ] Schema: `feedback_forms` (form_type enum, all U12/U16 nullable fields, goals, action_1..3).
-- [ ] Schema: `competitions` + `competition_entries` (per-round kata FKs + win/loss enums, results, feedback).
-- [ ] Generate Better Auth tables (`user/session/account/verification`) via CLI; **commit into the schema dir** (single migration).
-- [ ] `src/lib/categories.ts`: `calculateAge`, `getCategories` (own category + one above) + **Vitest unit tests** (boundary ages 11/12/13/14/15/16/17/18/20/21).
-- [ ] `src/db/seed.ts`: all ~23 Shotokan kata (exact names / split flags / flex / sort_order per `CLAUDE.md`).
-- [ ] Seed demo coach via `auth.api.signUpEmail` under the **serverless** client (gate signup hook with `SEED=1`).
-- [ ] Seed one sample athlete + sample athlete_kata / scoring cards / feedback / competition for dev.
+- [x] Schema: `athletes` (+ gender enum, `view_token` unique, `is_active`, timestamps).
+- [x] Schema: `kata` (+ category enum, split booleans, flex A/B/C enum, sort_order).
+- [x] Schema: `athlete_kata` (FKs, round_order, is_competition_kata, proficiency, notes).
+- [x] Schema: `kata_scoring_cards` (12 criteria + overall + note fields) **+ index `(athlete_id, kata_id, assessment_date)`**.
+- [x] Schema: `feedback_forms` (form_type enum, all U12/U16 nullable fields, goals, action_1..3).
+- [x] Schema: `competitions` + `competition_entries` (per-round kata FKs + win/loss enums, results, feedback).
+- [x] Generate Better Auth tables (`user/session/account/verification`) via CLI; **commit into the schema dir** (single migration). _(src/db/auth-schema.ts, re-exported)_
+- [x] `src/lib/categories.ts`: `calculateAge`, `getCategories` (own category + one above) + **Vitest unit tests** (boundary ages 11/12/13/14/15/16/17/18/20/21).
+- [x] `src/db/seed.ts`: all 23 Shotokan kata (exact names / split flags / flex / sort_order per `CLAUDE.md`).
+- [x] Seed demo coach via `auth.api.signUpEmail` under the **serverless** client (gate signup hook with `SEED=1`).
+- [x] Seed one sample athlete + sample athlete_kata / scoring cards / feedback / competition for dev.
 
 **Done when**
-- [ ] `pnpm db:migrate` applies cleanly to Neon (one migration incl. BA tables).
-- [ ] `pnpm db:seed` populates without error.
-- [ ] A query test reads back seeded coach + all kata + sample athlete.
-- [ ] `pnpm test` green (category logic verified).
+- [x] `pnpm db:migrate` applies cleanly (one migration `0000_opposite_silvermane` incl. BA tables; 11 tables live).
+- [x] `pnpm db:seed` populates without error (idempotent; re-runnable).
+- [x] A query test reads back seeded coach + all 23 kata + sample athlete (`pnpm db:verify`).
+- [x] `pnpm test` green (18 tests; category boundary logic verified).
 
-**Session log:**
+**Session log:** 2026-06-15 · `main` · Front-loaded minimal `src/lib/auth.ts` (Ch3 extends it)
+since BA CLI generate + seed both need it. BA schema generated via `pnpm exec better-auth
+generate` → `src/db/auth-schema.ts` (text PKs), re-exported from `schema.ts` so one drizzle
+migration covers app + BA tables. `db:seed` gated by `SEED=1`; demo coach `coach@lugiajen.nl`
+/ `lugiajen2026`. DB read-back via `pnpm db:verify`. See `docs/specs/ch02-schema.md`.
 
 ---
 
