@@ -27,7 +27,7 @@
 | 1  | Scaffold, tooling & data-layer wiring | ✅ | Prereqs |
 | 2  | Data model, migrations & seed | ✅ | Ch1 |
 | 3  | Auth & app shell | ✅ | Ch2 |
-| 4  | Athlete CRUD & profile shell | ⬜ | Ch3 |
+| 4  | Athlete CRUD & profile shell | ✅ | Ch3 |
 | 5  | Kata repertoire & scoring cards | ⬜ | Ch4 |
 | 6  | Scoring-card visualizations | ⬜ | Ch5 |
 | 7  | Feedback forms (U12 / U16) | ⬜ | Ch4 |
@@ -186,26 +186,32 @@ Standard Schema; `zodResolver` types against zod 3). `Button`/`Card` are base-ui
 ---
 
 ## Ch4 — Athlete CRUD & profile shell
-**Status:** ⬜ · **Depends on:** Ch3 · **Fan-out:** Medium (list+filter // create+edit // profile shell // shared display components)
+**Status:** ✅ done · **Depends on:** Ch3 · **Fan-out:** Medium (list+filter // create+edit // profile shell // shared display components)
 **Libs to context7:** Next.js server actions + useActionState, shadcn Table/Form/Tabs
 
 **Tasks**
-- [ ] `/athletes` list: filter (category / active / belt), sort (name / age / last-feedback / #competitions), search.
-- [ ] Athlete create + edit forms (RHF + zod `athletes/schema.ts` + server actions, typed results).
-- [ ] `/athletes/[id]` 6-tab shell — tabs: Overzicht, Kata, Scorekaarten, Feedback, Wedstrijden, Notities (**Overzicht + Notities live; rest stubbed**).
-- [ ] Computed age + eligible category badges (reuse `lib/categories.ts`).
-- [ ] "Deel link" button copies `/athlete/view/{view_token}`.
-- [ ] `components/display/athlete-header`, `athlete-card`, `stats-overview` (shell) — honoring the **mode-prop contract** (convention 3).
-- [ ] Notities: append-only timestamped log.
-- [ ] `messages/nl.ts` introduced; athlete-facing strings routed through it.
+- [x] `/athletes` list: filter (category / active / belt), sort (name / age / last-feedback / #competitions), search. _(URL searchParams; DB-level for active/belt/search, derived in memory)_
+- [x] Athlete create + edit forms (RHF + zod `features/athletes/schema.ts` + server actions, typed results).
+- [x] `/athletes/[id]` 6-tab shell — tabs: Overzicht, Kata, Scorekaarten, Feedback, Wedstrijden, Notities (**Overzicht + Notities live; rest stubbed**).
+- [x] Computed age + eligible category badges (reuse `lib/categories.ts`).
+- [x] "Deel link" button copies `/athlete/view/{view_token}`.
+- [x] `components/display/athlete-header`, `athlete-card`, `stats-overview` (shell) — honoring the **mode-prop contract** (convention 3).
+- [x] Notities: append-only timestamped log. _(new `athlete_notes` table, migration `0001`)_
+- [x] `messages/nl.ts` introduced (`src/messages/nl.ts`); athlete-facing strings routed through it.
 
 **Done when**
-- [ ] Create → edit → list → profile round-trips.
-- [ ] Age + categories correct (incl. "one above").
-- [ ] Share link copies to clipboard.
-- [ ] **Mode contract reviewed**: display components call no `getSession`, import no server actions.
+- [x] Create → edit → list → profile round-trips. _(read paths verified authed over HTTP; create/edit via browser actions)_
+- [x] Age + categories correct (incl. "one above"). _(reuses unit-tested `categories.ts`)_
+- [x] Share link copies to clipboard. _(ShareLinkButton; browser clipboard)_
+- [x] **Mode contract reviewed**: display components call no `getSession`, import no server actions. _(grep: import only ui + types; not even client components)_
 
-**Session log:**
+**Session log:** 2026-06-15 · `main` · New `athlete_notes` table (additive migration `0001`)
+for the append-only Notities log. Feature layout: `features/athletes/{schema,actions}` +
+`components/forms/athlete-form` + `lib/queries/athletes` + pure `components/display/*`.
+Forms = native FormData + RHF (server-authoritative zod; no client resolver to avoid zod4
+input/output mismatch). base-ui `Select` doesn't post FormData → native `<select>`. Dashboard
+card refactored to shared `display/athlete-card`. `messages/nl.ts` → `src/messages/nl.ts`
+(for `@/` alias). Dev now on **:3005** (BETTER_AUTH_URL). See `docs/specs/ch04-athletes.md`.
 
 ---
 

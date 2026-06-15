@@ -4,6 +4,7 @@ import { auth } from "../lib/auth";
 import { db, pool } from "../lib/db.serverless";
 import {
   athleteKata,
+  athleteNotes,
   athletes,
   competitionEntries,
   competitions,
@@ -225,10 +226,32 @@ async function seedSampleAthlete() {
   console.log("[seed] sample athlete + related rows created.");
 }
 
+async function seedSampleNote() {
+  const [athlete] = await db
+    .select()
+    .from(athletes)
+    .where(eq(athletes.firstName, "Sample"));
+  if (!athlete) return;
+  const existing = await db
+    .select()
+    .from(athleteNotes)
+    .where(eq(athleteNotes.athleteId, athlete.id));
+  if (existing.length > 0) {
+    console.log("[seed] sample note already exists.");
+    return;
+  }
+  await db.insert(athleteNotes).values({
+    athleteId: athlete.id,
+    body: "Goede focus tijdens training. Werken aan kime in Heian Yondan.",
+  });
+  console.log("[seed] sample note created.");
+}
+
 async function main() {
   await seedKata();
   await seedCoach();
   await seedSampleAthlete();
+  await seedSampleNote();
   await pool.end();
   console.log("[seed] done.");
 }

@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { AthleteCard } from "@/components/display/athlete-card";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -60,25 +59,13 @@ export default async function DashboardPage() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {cards.map((a) => (
               <Link key={a.id} href={`/athletes/${a.id}`} className="block">
-                <Card className="h-full transition-colors hover:bg-accent/40">
-                  <CardHeader>
-                    <CardTitle>
-                      <span className="font-heading text-base">
-                        {a.firstName} {a.lastName}
-                      </span>
-                    </CardTitle>
-                    <CardDescription>
-                      {a.age} jaar · {a.beltRank}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex flex-wrap gap-1">
-                    {a.categories.map((c) => (
-                      <Badge key={c} variant="secondary">
-                        {c}
-                      </Badge>
-                    ))}
-                  </CardContent>
-                </Card>
+                <AthleteCard
+                  firstName={a.firstName}
+                  lastName={a.lastName}
+                  age={a.age}
+                  beltRank={a.beltRank}
+                  categories={a.categories}
+                />
               </Link>
             ))}
           </div>

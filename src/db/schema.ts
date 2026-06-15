@@ -223,12 +223,30 @@ export const competitionEntries = pgTable("competition_entries", {
     .$onUpdate(() => new Date()),
 });
 
+// ── athlete_notes (append-only timestamped coach log; Notities tab) ────────────
+export const athleteNotes = pgTable("athlete_notes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  athleteId: uuid("athlete_id")
+    .notNull()
+    .references(() => athletes.id, { onDelete: "cascade" }),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // ── Relations ─────────────────────────────────────────────────────────────────
 export const athletesRelations = relations(athletes, ({ many }) => ({
   athleteKata: many(athleteKata),
   scoringCards: many(kataScoringCards),
   feedbackForms: many(feedbackForms),
   competitionEntries: many(competitionEntries),
+  notes: many(athleteNotes),
+}));
+
+export const athleteNotesRelations = relations(athleteNotes, ({ one }) => ({
+  athlete: one(athletes, {
+    fields: [athleteNotes.athleteId],
+    references: [athletes.id],
+  }),
 }));
 
 export const kataRelations = relations(kata, ({ many }) => ({
