@@ -32,7 +32,7 @@
 | 6  | Scoring-card visualizations | ✅ | Ch5 |
 | 7  | Feedback forms (U12 / U16) | ✅ | Ch4 |
 | 8  | Competitions | ✅ | Ch5 |
-| 9  | Athlete stats overview | ⬜ | Ch5–8 |
+| 9  | Athlete stats overview | ✅ | Ch5–8 |
 | 10 | Public athlete viewer portal | ⬜ | Ch4 + 5/6/7/8/9 |
 | 11 | PDF export | ⬜ | Ch6/7/9 |
 | 12 | Polish (mobile / offline / hardening) | ⬜ | all |
@@ -333,19 +333,29 @@ the redirect pattern. Detail hub doubles as the edit surface: `?edit=1` (competi
 ---
 
 ## Ch9 — Athlete stats overview
-**Status:** ⬜ · **Depends on:** Ch5–8 · **Fan-out:** High (one independent reader per stat panel)
+**Status:** ✅ done · **Depends on:** Ch5–8 · **Fan-out:** High (one independent reader per stat panel)
 **Libs to context7:** Drizzle aggregations
 
 **Tasks**
-- [ ] `src/lib/queries/athlete-stats.ts`: total competitions; podium counts (1/2/3); win/loss per round; competitions by type; most-performed competition kata; active repertoire + proficiency; active goals (latest feedback); physical profile; current focus points (latest feedback + scoring cards).
-- [ ] Fill the `stats-overview` display component (built Ch4).
-- [ ] Vitest for the aggregation helpers.
+- [x] Stats assembler (total competitions; podium 1/2/3; win/loss per round; competitions by type; most-performed competition kata; active repertoire + proficiency; active goals (latest feedback); physical profile; current focus points (latest feedback + scoring cards)). _(pure `src/lib/athlete-stats.ts` — assembles already-loaded rows, no re-query; see deviation note)_
+- [x] Fill the `stats-overview` display component (built Ch4). _(5 panels, stays pure; copy via `nl.athlete.overview.*`)_
+- [x] Vitest for the aggregation helpers. _(`buildAthleteStats` + `competitionsByType` + `winLossPerRound`; 29 total)_
 
 **Done when**
-- [ ] Overzicht shows correct numbers vs seeded + created data.
-- [ ] Cross-checked against raw queries.
+- [x] Overzicht shows correct numbers vs seeded + created data. _(authed HTTP: Wedstrijden 2, Podium 0/1/0, Club 1 + Internationaal 1, Ronde 1 2–0, Finale 0–1, Heian Yondan Niveau 6 / Bassai Dai Niveau 5, goal "Elke training op tijd…", focus "Snelheid in eindsequentie" + seeded action)_
+- [x] Cross-checked against raw queries. _(psql aggregates match the rendered figures exactly)_
 
-**Session log:**
+**Session log:** 2026-06-15 · `main` · **Deviation:** BUILD-PLAN named `lib/queries/athlete-stats.ts`,
+but the profile page already loads every source row in its `Promise.all` — so Ch9 is a **pure
+assembler** `src/lib/athlete-stats.ts` (`buildAthleteStats({competitions,repertoire,latestCards,
+feedback,kataNames})`), zero extra queries (convention 4), directly Vitest-able, Ch10-reusable.
+Reuses Ch8 `summarizeAthleteCompetitions` for total/podium/most-kata; adds `competitionsByType` +
+`winLossPerRound` (tally over the 5 `ENTRY_ROUNDS` result cols). Goals = latest feedback (nulls
+dropped); focus points = latest feedback dev-area/actions + latest scoring `priorityImprovements`,
+feedback-first + deduped. Filled the pure `stats-overview` shell (5 cards, `nl.athlete.overview.*`,
+`mode` still gates physical notes). Numbers cross-checked vs raw psql — note the seeded Sample now has
+**2** entries (one is leftover manual browser-test data), and the panel correctly reflects it. See
+`docs/specs/ch09-stats.md`.
 
 ---
 

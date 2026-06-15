@@ -20,6 +20,7 @@ import { RemoveKataButton } from "@/components/kata/remove-kata-button";
 import { buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NUMERIC_CRITERIA, formatDelta } from "@/features/scoring/criteria";
+import { buildAthleteStats } from "@/lib/athlete-stats";
 import { calculateAge, getCategories } from "@/lib/categories";
 import { getAthleteById, getAthleteNotes } from "@/lib/queries/athletes";
 import { getAthleteCompetitions } from "@/lib/queries/competitions";
@@ -80,6 +81,15 @@ export default async function AthletePage({
     getKataLibrary(),
   ]);
   const kataNames = new Map(kataLib.map((k) => [k.id, k.name]));
+
+  // Overzicht stats — assembled from already-loaded rows (convention 4, no re-query).
+  const stats = buildAthleteStats({
+    competitions,
+    repertoire,
+    latestCards,
+    feedback,
+    kataNames,
+  });
 
   const lastDateByKata = new Map(
     latestCards.map((c) => [c.kataId, c.assessmentDate]),
@@ -144,6 +154,7 @@ export default async function AthletePage({
 
         <TabsContent value="overview" className="pt-4">
           <StatsOverview
+            stats={stats}
             physical={{
               heightCm: a.heightCm,
               weightKg: a.weightKg,
