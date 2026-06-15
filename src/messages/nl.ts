@@ -22,6 +22,9 @@ export const nl = {
     edit: "Atleet bewerken",
     shareLink: "Deel link",
     linkCopied: "Link gekopieerd",
+    rotateLink: "Nieuwe link",
+    rotateConfirm:
+      "Nieuwe deel-link maken? De oude link werkt daarna niet meer.",
     active: "Actief",
     inactive: "Inactief",
     fields: {
@@ -287,5 +290,10 @@ export const nl = {
       mostKata: "Meest gelopen kata",
       none: "—",
     },
+  },
+  portal: {
+    title: "Atleetprofiel",
+    readOnly: "Alleen-lezen weergave voor de atleet en ouders.",
+    rateLimited: "Te veel verzoeken. Probeer het later opnieuw.",
   },
 } as const;

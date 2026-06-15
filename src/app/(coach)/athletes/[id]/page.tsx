@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddNoteForm } from "@/components/athletes/add-note-form";
+import { RotateLinkButton } from "@/components/athletes/rotate-link-button";
 import { ShareLinkButton } from "@/components/athletes/share-link-button";
-import { ScoreRadarChart } from "@/components/charts/score-radar-chart";
-import { ScoreTrendChart } from "@/components/charts/score-trend-chart";
-import { TrendSparkline } from "@/components/charts/trend-sparkline";
 import { AthleteCompetitions } from "@/components/display/athlete-competitions";
 import { AthleteHeader } from "@/components/display/athlete-header";
 import { FeedbackList } from "@/components/display/feedback-list";
@@ -12,14 +10,13 @@ import {
   KataRepertoire,
   type KataRepertoireItem,
 } from "@/components/display/kata-repertoire";
-import { ScoreHistoryTable } from "@/components/display/score-history-table";
+import { ScoringHistoryPanel } from "@/components/display/scoring-history-panel";
 import { StatsOverview } from "@/components/display/stats-overview";
 import { AssignKataForm } from "@/components/kata/assign-kata-form";
 import { AthleteKataEditForm } from "@/components/kata/athlete-kata-edit-form";
 import { RemoveKataButton } from "@/components/kata/remove-kata-button";
 import { buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { NUMERIC_CRITERIA, formatDelta } from "@/features/scoring/criteria";
 import { buildAthleteStats } from "@/lib/athlete-stats";
 import { calculateAge, getCategories } from "@/lib/categories";
 import { getAthleteById, getAthleteNotes } from "@/lib/queries/athletes";
@@ -113,7 +110,6 @@ export default async function AthletePage({
   const history = selectedKataId
     ? await getScoringHistory(id, selectedKataId)
     : [];
-  const latestCard = history[0] ?? null;
 
   const age = calculateAge(new Date(a.dateOfBirth));
   const categories = getCategories(new Date(a.dateOfBirth));
@@ -132,6 +128,7 @@ export default async function AthletePage({
         actions={
           <>
             <ShareLinkButton token={a.viewToken} />
+            <RotateLinkButton athleteId={a.id} />
             <Link
               href={`/athletes/${a.id}/edit`}
               className={buttonVariants({ variant: "outline", size: "sm" })}
@@ -231,96 +228,7 @@ export default async function AthletePage({
                     </Link>
                   </div>
 
-                  {latestCard ? (
-                    <div className="grid gap-6 md:grid-cols-2">
-                      <div>
-                        <h3 className="mb-2 text-sm font-medium">
-                          {nl.scoring.charts.currentScores}
-                        </h3>
-                        <ScoreRadarChart card={latestCard} />
-                      </div>
-                      <div>
-                        <h3 className="mb-2 text-sm font-medium">
-                          {nl.scoring.charts.trend}
-                        </h3>
-                        {history.length >= 2 ? (
-                          <ScoreTrendChart history={history} />
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            {nl.scoring.charts.needMore}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {history.length >= 2 ? (
-                    <div className="flex flex-col gap-2">
-                      <h3 className="text-sm font-medium">
-                        {nl.scoring.charts.perCriterion}
-                      </h3>
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                        {NUMERIC_CRITERIA.map((c) => {
-                          const series = [...history]
-                            .reverse()
-                            .map((card) => card[c.key] as number);
-                          const latest = series[series.length - 1];
-                          const delta = latest - series[series.length - 2];
-                          return (
-                            <div
-                              key={c.key}
-                              className="flex flex-col gap-1 rounded-lg border border-border p-2"
-                            >
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground">
-                                  {nl.scoring.criteria[c.key]}
-                                </span>
-                                <span className="tabular-nums">
-                                  {latest}
-                                  {delta !== 0 ? (
-                                    <span className="ml-1 text-muted-foreground">
-                                      {formatDelta(delta)}
-                                    </span>
-                                  ) : null}
-                                </span>
-                              </div>
-                              <TrendSparkline
-                                values={series}
-                                width={140}
-                                height={36}
-                              />
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <div className="flex flex-col gap-2">
-                    <h3 className="text-sm font-medium">{nl.scoring.title}</h3>
-                    <ScoreHistoryTable history={history} />
-                  </div>
-                  {latestCard?.priorityImprovements ||
-                  latestCard?.strengths ? (
-                    <div className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">
-                      {latestCard?.priorityImprovements ? (
-                        <p>
-                          <span className="font-medium">
-                            {nl.scoring.textFields.priorityImprovements}:
-                          </span>{" "}
-                          {latestCard.priorityImprovements}
-                        </p>
-                      ) : null}
-                      {latestCard?.strengths ? (
-                        <p>
-                          <span className="font-medium">
-                            {nl.scoring.textFields.strengths}:
-                          </span>{" "}
-                          {latestCard.strengths}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
+                  <ScoringHistoryPanel history={history} />
                 </div>
               ) : null}
             </div>

@@ -130,6 +130,20 @@ export async function getAthleteById(id: string) {
   return a ?? null;
 }
 
+/**
+ * Resolve a public `view_token` → athlete (Ch10 portal). Tokens are uuids
+ * (`crypto.randomUUID`, incl. after rotation); a malformed token is just a miss,
+ * never a 500. No `isActive` gate — a shared link keeps working for parents.
+ */
+export async function getAthleteByViewToken(token: string) {
+  if (!UUID_RE.test(token)) return null;
+  const [a] = await db
+    .select()
+    .from(athletes)
+    .where(eq(athletes.viewToken, token));
+  return a ?? null;
+}
+
 export async function getAthleteNotes(athleteId: string) {
   return db
     .select()

@@ -103,6 +103,25 @@ export async function updateAthlete(
   redirect(`/athletes/${id}`);
 }
 
+/**
+ * Rotate an athlete's public `view_token` (Ch10). Invalidates the old share link
+ * immediately (the old token no longer resolves → 404) and mints a fresh one.
+ */
+export async function rotateViewToken(
+  _prev: AthleteFormState,
+  formData: FormData,
+): Promise<AthleteFormState> {
+  await requireSession();
+  const athleteId = String(formData.get("athleteId") ?? "");
+  if (!athleteId) return { ok: false, message: "Onbekende atleet." };
+  await db
+    .update(athletes)
+    .set({ viewToken: crypto.randomUUID() })
+    .where(eq(athletes.id, athleteId));
+  revalidatePath(`/athletes/${athleteId}`);
+  return { ok: true };
+}
+
 export async function addAthleteNote(
   _prev: AthleteFormState,
   formData: FormData,

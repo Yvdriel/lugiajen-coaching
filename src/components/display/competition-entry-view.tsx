@@ -72,14 +72,22 @@ export function RoundList({
   return <ul className="flex flex-col gap-1">{rounds}</ul>;
 }
 
-export function EntryFeedback({ entry }: { entry: CompetitionEntry }) {
+export function EntryFeedback({
+  entry,
+  mode = "coach",
+}: {
+  entry: CompetitionEntry;
+  mode?: "coach" | "public";
+}) {
   const e = nl.competition.entry;
+  // coachNotes is coach-private — never shown in the public portal (convention 3).
+  const showCoachNotes = mode === "coach" && Boolean(entry.coachNotes);
   const hasAny =
     entry.feedbackBefore ||
     entry.feedbackPerformance ||
     entry.feedbackImprovement ||
     entry.feedbackLesson ||
-    entry.coachNotes;
+    showCoachNotes;
   if (!hasAny) return null;
   return (
     <div className="grid gap-3 sm:grid-cols-2">
@@ -87,7 +95,9 @@ export function EntryFeedback({ entry }: { entry: CompetitionEntry }) {
       <Row label={e.feedbackPerformance} value={entry.feedbackPerformance} />
       <Row label={e.feedbackImprovement} value={entry.feedbackImprovement} />
       <Row label={e.feedbackLesson} value={entry.feedbackLesson} />
-      <Row label={e.coachNotes} value={entry.coachNotes} />
+      {showCoachNotes ? (
+        <Row label={e.coachNotes} value={entry.coachNotes} />
+      ) : null}
     </div>
   );
 }
@@ -97,16 +107,18 @@ export function EntryBody({
   entry,
   kataNames,
   actions,
+  mode = "coach",
 }: {
   entry: CompetitionEntry;
   kataNames: Map<string, string>;
   actions?: ReactNode;
+  mode?: "coach" | "public";
 }) {
   return (
     <div className="flex flex-col gap-3">
       <ResultBadges entry={entry} />
       <RoundList entry={entry} kataNames={kataNames} />
-      <EntryFeedback entry={entry} />
+      <EntryFeedback entry={entry} mode={mode} />
       {actions ? <div className="flex gap-1">{actions}</div> : null}
     </div>
   );

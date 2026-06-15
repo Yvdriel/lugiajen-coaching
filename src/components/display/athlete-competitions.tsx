@@ -12,6 +12,7 @@ import { nl } from "@/messages/nl";
 export type AthleteCompetitionsProps = {
   rows: AthleteCompetitionRow[];
   kataNames: Map<string, string>;
+  mode?: "coach" | "public";
 };
 
 function fmtDate(d: string): string {
@@ -30,6 +31,7 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 export function AthleteCompetitions({
   rows,
   kataNames,
+  mode = "coach",
 }: AthleteCompetitionsProps) {
   const c = nl.competition;
   if (rows.length === 0) {
@@ -72,7 +74,7 @@ export function AthleteCompetitions({
               </div>
               <Badge variant="outline">{c.types[row.competitionType]}</Badge>
             </div>
-            <EntryBody entry={row.entry} kataNames={kataNames} />
+            <EntryBody entry={row.entry} kataNames={kataNames} mode={mode} />
           </li>
         ))}
       </ul>

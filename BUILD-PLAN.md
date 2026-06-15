@@ -33,7 +33,7 @@
 | 7  | Feedback forms (U12 / U16) | ✅ | Ch4 |
 | 8  | Competitions | ✅ | Ch5 |
 | 9  | Athlete stats overview | ✅ | Ch5–8 |
-| 10 | Public athlete viewer portal | ⬜ | Ch4 + 5/6/7/8/9 |
+| 10 | Public athlete viewer portal | ✅ | Ch4 + 5/6/7/8/9 |
 | 11 | PDF export | ⬜ | Ch6/7/9 |
 | 12 | Polish (mobile / offline / hardening) | ⬜ | all |
 
@@ -49,7 +49,7 @@
 - [x] Put the **pooled** connection string in `.env` as `DATABASE_URL`. _(local docker)_
 - [x] Put the **direct / unpooled** connection string in `.env` as `DATABASE_URL_UNPOOLED`. _(local docker)_
 - [x] Generate a Better Auth secret → `.env` as `BETTER_AUTH_SECRET` (+ `BETTER_AUTH_URL`).
-- [ ] (Later, Ch10) Decide rate-limit backend (Vercel middleware / Upstash).
+- [x] (Ch10) Rate-limit backend = in-memory limiter behind a swappable `RateLimiter` interface (Upstash later).
 - [ ] (Later) Create Vercel project for deploy.
 
 ---
@@ -360,22 +360,36 @@ feedback-first + deduped. Filled the pure `stats-overview` shell (5 cards, `nl.a
 ---
 
 ## Ch10 — Public athlete viewer portal
-**Status:** ⬜ · **Depends on:** Ch4 contract + display components from 5/6/7/8/9 · **Fan-out:** Low (rate-limit infra // page assembly)
+**Status:** ✅ · **Depends on:** Ch4 contract + display components from 5/6/7/8/9 · **Fan-out:** Low (rate-limit infra // page assembly)
 **Libs to context7:** Next.js ISR/headers/middleware, rate-limit lib (Upstash if chosen)
 
 **Tasks**
-- [ ] `/athlete/view/[token]` resolves `view_token` → renders the SAME `components/display/*` in `mode: 'public'` (overview, scoring history + charts, feedback, competitions).
-- [ ] Branded header "Atleetprofiel — [Name]".
-- [ ] ISR (short revalidate).
-- [ ] Rate-limit by IP+token; `X-Robots-Tag: noindex`; `referrer-policy: no-referrer`.
-- [ ] Support `view_token` rotation; never send token to analytics.
+- [x] `/athlete/view/[token]` resolves `view_token` → renders the SAME `components/display/*` in `mode: 'public'` (overview, scoring history + charts, feedback, competitions).
+- [x] Branded header "Atleetprofiel — [Name]".
+- [x] ISR (short revalidate).
+- [x] Rate-limit by IP+token; `X-Robots-Tag: noindex`; `referrer-policy: no-referrer`.
+- [x] Support `view_token` rotation; never send token to analytics.
 
 **Done when**
-- [ ] Valid token renders read-only profile (zero edit affordances; no `getSession` in display path).
-- [ ] Invalid token 404s.
-- [ ] Rate-limit trips on abuse; `noindex` present.
+- [x] Valid token renders read-only profile (zero edit affordances; no `getSession` in display path).
+- [x] Invalid token 404s.
+- [x] Rate-limit trips on abuse; `noindex` present.
 
-**Session log:**
+**Session log:** 2026-06-15 · `main` · Rate-limit backend = **in-memory** (user choice) behind a
+swappable `RateLimiter` interface (`lib/rate-limit.ts`); Upstash drops in later. **Next 16:**
+`middleware`→`proxy` (context7) — `src/proxy.ts` (nodejs runtime, so in-memory state persists) does
+IP+token limit (30/60s, trips at exactly 30 → 429) + sets `X-Robots-Tag: noindex, nofollow` +
+`Referrer-Policy: no-referrer`. New `app/athlete/view/[token]/page.tsx` (+ branded `layout.tsx`,
+no auth) reuses display components in `mode="public"`; `generateMetadata` robots noindex. **Reuse
+refactor:** extracted the coach page's inline scoring JSX into pure `display/scoring-history-panel.tsx`
+(shared by coach + portal). **Privacy:** added `mode` gating so competition `coachNotes` is coach-only
+(`competition-entry-view`/`athlete-competitions`); Notes tab omitted from portal. Token rotation =
+`rotateViewToken` action + `RotateLinkButton`. New query `getAthleteByViewToken`. **Deviation:** route
+is `ƒ` dynamic (reads `searchParams` for the kata picker) — `revalidate=300` still set; kata-picker
+uses plain `<a>` (no prefetch) so prefetches don't burn the limiter. Verified: valid token 200 (no
+cookie) all 5 tabs + stats cross-checked vs psql; invalid/malformed 404; injected coach-note marker
+shown on coach page, **absent** in portal; rotation old→404/new→200; 429 after 30. typecheck/lint/
+**32 tests** (+3 rate-limit)/build clean. `docs/specs/ch10-portal.md`.
 
 ---
 
