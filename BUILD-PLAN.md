@@ -31,7 +31,7 @@
 | 5  | Kata repertoire & scoring cards | ✅ | Ch4 |
 | 6  | Scoring-card visualizations | ✅ | Ch5 |
 | 7  | Feedback forms (U12 / U16) | ✅ | Ch4 |
-| 8  | Competitions | ⬜ | Ch5 |
+| 8  | Competitions | ✅ | Ch5 |
 | 9  | Athlete stats overview | ⬜ | Ch5–8 |
 | 10 | Public athlete viewer portal | ⬜ | Ch4 + 5/6/7/8/9 |
 | 11 | PDF export | ⬜ | Ch6/7/9 |
@@ -300,22 +300,35 @@ Auto-detect `age <= 12 ? U12 : U16` + `?type=` override; `currentSeason()` defau
 ---
 
 ## Ch8 — Competitions
-**Status:** ⬜ · **Depends on:** Ch5 · **Fan-out:** Medium (CRUD // entries+feedback // wizard // Wedstrijden tab)
+**Status:** ✅ done · **Depends on:** Ch5 · **Fan-out:** Medium (CRUD // entries+feedback // wizard // Wedstrijden tab)
 **Libs to context7:** Next.js, Drizzle `batch()`
 
 **Tasks**
-- [ ] `/competitions` list + `/competitions/new` (name, date, location, type) + `/competitions/[id]` detail.
-- [ ] `competition_entries`: category, kata per round (from athlete repertoire), win/loss per round, placement, round reached.
-- [ ] Competition **wizard/stepper**: select/create → add athletes → per-athlete category+katas → results → feedback.
-- [ ] Per-entry feedback fields (before / performance / improvement / lesson).
-- [ ] Atomic entry save via `db.batch()`.
-- [ ] **Wedstrijden tab** on athlete with summary stats.
+- [x] `/competitions` list + `/competitions/new` (wizard) + `/competitions/[id]` detail hub.
+- [x] `competition_entries`: category, kata per round (from athlete competition repertoire), win/loss per round, placement, round reached.
+- [x] Competition **wizard/stepper** (user-chosen client 5-step stepper): Wedstrijd → Atleten → Kata per ronde → Resultaten → Feedback; persist-per-step via typed-result actions.
+- [x] Per-entry feedback fields (before / performance / improvement / lesson + coach notes).
+- [x] Atomic entry save via `db.batch()` (the add-athletes multi-row write; verified rollback-on-failure).
+- [x] **Wedstrijden tab** on athlete with summary stats (total / podium 1-2-3 / most-performed kata).
 
 **Done when**
-- [ ] Create competition, add athletes, record per-round results + placement.
-- [ ] Fill feedback; visible on both competition detail and athlete tab.
+- [x] Create competition, add athletes, record per-round results + placement. _(wizard + detail `?entry=` editor; DB read-back: create +1, batch add +2 atomic, update same row)_
+- [x] Fill feedback; visible on both competition detail and athlete tab. _(`EntryBody` shared by `competition-entries` + `athlete-competitions`; seeded entry feedback renders on both surfaces)_
 
-**Session log:**
+**Session log:** 2026-06-15 · `main` · No new library — reused Ch4/Ch7 native-FormData + RHF +
+server-authoritative zod, Ch5 pure display-contract, and Drizzle `db.batch()` (grounded via
+context7: implicit all-or-nothing transaction; empirically verified the bad-FK sibling rolls the
+whole batch back). User chose the **client 5-step stepper** (`components/competition/competition-wizard.tsx`)
+over the server-driven `?searchParam` idiom — the only client state machine in the app. It
+**persists per step** through typed-result actions (`createCompetition`/`addCompetitionAthletes`/
+`updateCompetitionEntry` return `{ok,id?/entries?}` and `revalidatePath`, **no redirect**) so entries
+exist + stay editable after the Atleten step (no orphan drafts). Competition-level update/remove keep
+the redirect pattern. Detail hub doubles as the edit surface: `?edit=1` (competition form) and
+`?entry=<id>` (entry editor, kata selects from the athlete's competition repertoire). Pure
+`display/{competition-list,competition-entries,athlete-competitions}` + shared `competition-entry-view`
+(Ch10 reuse). Round katas resolved via a kata id→name map (no 5 self-joins). New
+`lib/queries/competitions.ts`; pure `summarizeAthleteCompetitions` (+3 Vitest, 24 total). See
+`docs/specs/ch08-competitions.md`.
 
 ---
 

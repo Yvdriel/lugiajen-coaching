@@ -5,6 +5,7 @@ import { ShareLinkButton } from "@/components/athletes/share-link-button";
 import { ScoreRadarChart } from "@/components/charts/score-radar-chart";
 import { ScoreTrendChart } from "@/components/charts/score-trend-chart";
 import { TrendSparkline } from "@/components/charts/trend-sparkline";
+import { AthleteCompetitions } from "@/components/display/athlete-competitions";
 import { AthleteHeader } from "@/components/display/athlete-header";
 import { FeedbackList } from "@/components/display/feedback-list";
 import {
@@ -21,8 +22,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NUMERIC_CRITERIA, formatDelta } from "@/features/scoring/criteria";
 import { calculateAge, getCategories } from "@/lib/categories";
 import { getAthleteById, getAthleteNotes } from "@/lib/queries/athletes";
+import { getAthleteCompetitions } from "@/lib/queries/competitions";
 import { getFeedbackForms } from "@/lib/queries/feedback";
-import { getAthleteKata, getUnassignedKata } from "@/lib/queries/kata";
+import {
+  getAthleteKata,
+  getKataLibrary,
+  getUnassignedKata,
+} from "@/lib/queries/kata";
 import {
   getLatestCardsPerKata,
   getScoringHistory,
@@ -54,15 +60,26 @@ export default async function AthletePage({
 
   const activeTab: Tab = TABS.includes(tab as Tab) ? (tab as Tab) : "overview";
 
-  const [notes, repertoire, unassigned, latestCards, seriesByKata, feedback] =
-    await Promise.all([
-      getAthleteNotes(id),
-      getAthleteKata(id),
-      getUnassignedKata(id),
-      getLatestCardsPerKata(id),
-      getScoringSeriesByKata(id),
-      getFeedbackForms(id),
-    ]);
+  const [
+    notes,
+    repertoire,
+    unassigned,
+    latestCards,
+    seriesByKata,
+    feedback,
+    competitions,
+    kataLib,
+  ] = await Promise.all([
+    getAthleteNotes(id),
+    getAthleteKata(id),
+    getUnassignedKata(id),
+    getLatestCardsPerKata(id),
+    getScoringSeriesByKata(id),
+    getFeedbackForms(id),
+    getAthleteCompetitions(id),
+    getKataLibrary(),
+  ]);
+  const kataNames = new Map(kataLib.map((k) => [k.id, k.name]));
 
   const lastDateByKata = new Map(
     latestCards.map((c) => [c.kataId, c.assessmentDate]),
@@ -323,7 +340,7 @@ export default async function AthletePage({
           </div>
         </TabsContent>
         <TabsContent value="competitions" className="pt-4">
-          <Stub />
+          <AthleteCompetitions rows={competitions} kataNames={kataNames} />
         </TabsContent>
 
         <TabsContent value="notes" className="pt-4">
@@ -352,11 +369,5 @@ export default async function AthletePage({
         </TabsContent>
       </Tabs>
     </div>
-  );
-}
-
-function Stub() {
-  return (
-    <p className="text-sm text-muted-foreground">{nl.athlete.comingSoon}</p>
   );
 }
