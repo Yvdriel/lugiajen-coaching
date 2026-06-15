@@ -2,6 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddNoteForm } from "@/components/athletes/add-note-form";
 import { ShareLinkButton } from "@/components/athletes/share-link-button";
+import { ScoreRadarChart } from "@/components/charts/score-radar-chart";
+import { ScoreTrendChart } from "@/components/charts/score-trend-chart";
+import { TrendSparkline } from "@/components/charts/trend-sparkline";
 import { AthleteHeader } from "@/components/display/athlete-header";
 import {
   KataRepertoire,
@@ -14,12 +17,14 @@ import { AthleteKataEditForm } from "@/components/kata/athlete-kata-edit-form";
 import { RemoveKataButton } from "@/components/kata/remove-kata-button";
 import { buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NUMERIC_CRITERIA, formatDelta } from "@/features/scoring/criteria";
 import { calculateAge, getCategories } from "@/lib/categories";
 import { getAthleteById, getAthleteNotes } from "@/lib/queries/athletes";
 import { getAthleteKata, getUnassignedKata } from "@/lib/queries/kata";
 import {
   getLatestCardsPerKata,
   getScoringHistory,
+  getScoringSeriesByKata,
 } from "@/lib/queries/scoring";
 import { nl } from "@/messages/nl";
 
@@ -47,12 +52,14 @@ export default async function AthletePage({
 
   const activeTab: Tab = TABS.includes(tab as Tab) ? (tab as Tab) : "overview";
 
-  const [notes, repertoire, unassigned, latestCards] = await Promise.all([
-    getAthleteNotes(id),
-    getAthleteKata(id),
-    getUnassignedKata(id),
-    getLatestCardsPerKata(id),
-  ]);
+  const [notes, repertoire, unassigned, latestCards, seriesByKata] =
+    await Promise.all([
+      getAthleteNotes(id),
+      getAthleteKata(id),
+      getUnassignedKata(id),
+      getLatestCardsPerKata(id),
+      getScoringSeriesByKata(id),
+    ]);
 
   const lastDateByKata = new Map(
     latestCards.map((c) => [c.kataId, c.assessmentDate]),
@@ -60,6 +67,7 @@ export default async function AthletePage({
   const kataItems: KataRepertoireItem[] = repertoire.map((item) => ({
     ...item,
     lastAssessmentDate: lastDateByKata.get(item.kataId) ?? null,
+    trend: seriesByKata.get(item.kataId) ?? [],
   }));
 
   const editItem = editKata
@@ -182,7 +190,7 @@ export default async function AthletePage({
               </div>
 
               {selectedKataId ? (
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-6">
                   <div>
                     <Link
                       href={`/athletes/${a.id}/kata/${selectedKataId}/score`}
@@ -191,7 +199,76 @@ export default async function AthletePage({
                       {nl.scoring.newCard}
                     </Link>
                   </div>
-                  <ScoreHistoryTable history={history} />
+
+                  {latestCard ? (
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <div>
+                        <h3 className="mb-2 text-sm font-medium">
+                          {nl.scoring.charts.currentScores}
+                        </h3>
+                        <ScoreRadarChart card={latestCard} />
+                      </div>
+                      <div>
+                        <h3 className="mb-2 text-sm font-medium">
+                          {nl.scoring.charts.trend}
+                        </h3>
+                        {history.length >= 2 ? (
+                          <ScoreTrendChart history={history} />
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            {nl.scoring.charts.needMore}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {history.length >= 2 ? (
+                    <div className="flex flex-col gap-2">
+                      <h3 className="text-sm font-medium">
+                        {nl.scoring.charts.perCriterion}
+                      </h3>
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                        {NUMERIC_CRITERIA.map((c) => {
+                          const series = [...history]
+                            .reverse()
+                            .map((card) => card[c.key] as number);
+                          const latest = series[series.length - 1];
+                          const delta = latest - series[series.length - 2];
+                          return (
+                            <div
+                              key={c.key}
+                              className="flex flex-col gap-1 rounded-lg border border-border p-2"
+                            >
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">
+                                  {nl.scoring.criteria[c.key]}
+                                </span>
+                                <span className="tabular-nums">
+                                  {latest}
+                                  {delta !== 0 ? (
+                                    <span className="ml-1 text-muted-foreground">
+                                      {formatDelta(delta)}
+                                    </span>
+                                  ) : null}
+                                </span>
+                              </div>
+                              <TrendSparkline
+                                values={series}
+                                width={140}
+                                height={36}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-sm font-medium">{nl.scoring.title}</h3>
+                    <ScoreHistoryTable history={history} />
+                  </div>
                   {latestCard?.priorityImprovements ||
                   latestCard?.strengths ? (
                     <div className="flex flex-col gap-2 rounded-lg border border-border p-4 text-sm">

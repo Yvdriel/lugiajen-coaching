@@ -1,4 +1,4 @@
-import { and, desc, eq, getTableColumns, sql } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, sql } from "drizzle-orm";
 import { kataScoringCards } from "@/db/schema";
 import { db } from "@/lib/db";
 
@@ -66,4 +66,29 @@ export async function getLatestCardsPerKata(
     delete rest.rn; // drop the window helper column
     return rest as ScoringCardRow;
   });
+}
+
+/** Per-kata overall-impression trajectories (oldest→newest) for the Kata-tab sparklines. */
+export async function getScoringSeriesByKata(
+  athleteId: string,
+): Promise<Map<string, number[]>> {
+  const rows = await db
+    .select({
+      kataId: kataScoringCards.kataId,
+      overall: kataScoringCards.overallImpression,
+    })
+    .from(kataScoringCards)
+    .where(eq(kataScoringCards.athleteId, athleteId))
+    .orderBy(
+      asc(kataScoringCards.assessmentDate),
+      asc(kataScoringCards.createdAt),
+    );
+
+  const map = new Map<string, number[]>();
+  for (const r of rows) {
+    const arr = map.get(r.kataId) ?? [];
+    arr.push(r.overall);
+    map.set(r.kataId, arr);
+  }
+  return map;
 }

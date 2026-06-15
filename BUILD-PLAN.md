@@ -29,7 +29,7 @@
 | 3  | Auth & app shell | ✅ | Ch2 |
 | 4  | Athlete CRUD & profile shell | ✅ | Ch3 |
 | 5  | Kata repertoire & scoring cards | ✅ | Ch4 |
-| 6  | Scoring-card visualizations | ⬜ | Ch5 |
+| 6  | Scoring-card visualizations | ✅ | Ch5 |
 | 7  | Feedback forms (U12 / U16) | ⬜ | Ch4 |
 | 8  | Competitions | ⬜ | Ch5 |
 | 9  | Athlete stats overview | ⬜ | Ch5–8 |
@@ -244,22 +244,30 @@ ROW_NUMBER subquery. Hardened `getAthleteById` to 404 (not 500) on non-uuid path
 ---
 
 ## Ch6 — Scoring-card visualizations
-**Status:** ⬜ · **Depends on:** Ch5 · **Fan-out:** **Highest** (radar // trend // sparkline // history-table, all over `lib/queries/scoring.ts`)
+**Status:** ✅ done · **Depends on:** Ch5 · **Fan-out:** **Highest** (radar // trend // sparkline // history-table, all over `lib/queries/scoring.ts`)
 **Libs to context7:** Recharts (RadarChart, LineChart), shadcn chart
 
 **Tasks**
-- [ ] Radar/spider chart of current 12 criteria.
-- [ ] Per-criterion trend line chart over assessment dates.
-- [ ] Axis-less sparklines for Kata-tab summaries.
-- [ ] Color-coded **score-history-table** (green=improved, red=declined, neutral=unchanged; `+1/-2` deltas).
-- [ ] Surface latest card's priority-improvements.
+- [x] Radar/spider chart of current 12 criteria. _(`charts/score-radar-chart`, latest card, technical+athletic)_
+- [x] Per-criterion trend line chart over assessment dates. _(overall-impression `charts/score-trend-chart` + per-criterion sparkline grid)_
+- [x] Axis-less sparklines for Kata-tab summaries. _(`charts/trend-sparkline`, Verloop column; reused in the per-criterion grid)_
+- [x] Color-coded **score-history-table** (green=improved, red=declined, neutral=unchanged; `+1/-2` deltas).
+- [x] Surface latest card's priority-improvements. _(done Ch5; retained beside the charts)_
 
 **Done when**
-- [ ] All four render real history.
-- [ ] Delta colors correct; charts responsive.
-- [ ] Sparklines embedded in Kata tab.
+- [x] All four render real history. _(authed HTTP: 2 chart surfaces + 15 wrappers from seeded Heian cards; titles present)_
+- [x] Delta colors correct; charts responsive. _(24 emerald cells / 0 red for all-improving seed deltas; ChartContainer = ResponsiveContainer)_
+- [x] Sparklines embedded in Kata tab. _(Heian row sparkline renders; Bassai with 0 cards shows "—")_
 
-**Session log:**
+**Session log:** 2026-06-15 · `main` · Recharts **3.8.0** via `shadcn add chart` (base-nova →
+`ui/chart.tsx`); bundles clean under Turbopack (no `transpilePackages` needed). Charts are pure
+client display components in `components/charts/` (props only, no session/actions) → Ch10 reuses
+them. Monochrome via the brand's grayscale `--chart-1..5`; the **only** color is the
+CLAUDE-mandated green/red on the history-table delta cells. One new query
+`getScoringSeriesByKata` feeds the Kata-tab sparklines; the Scorekaarten charts derive from the
+existing `history`. Recharts draws most inner SVG client-side post-hydration (SSR mounts the
+wrappers) — verified via wrapper/title/colour markup + a clean `pnpm build`. See
+`docs/specs/ch06-viz.md`.
 
 ---
 

@@ -107,6 +107,7 @@ export const nl = {
     noAssessment: "Nog niet beoordeeld",
     newAssessment: "Nieuwe beoordeling",
     assess: "Beoordelen",
+    trend: "Verloop",
     edit: "Bewerken",
     remove: "Verwijderen",
     confirmRemove: "Kata uit repertoire verwijderen?",
@@ -121,6 +122,12 @@ export const nl = {
     previous: "vorige",
     criterion: "Criterium",
     save: "Beoordeling opslaan",
+    charts: {
+      currentScores: "Huidige scores",
+      trend: "Verloop algemene indruk",
+      perCriterion: "Verloop per criterium",
+      needMore: "Minimaal 2 beoordelingen nodig voor het verloop.",
+    },
     groups: {
       technical: "Technische uitvoering",
       athletic: "Atletische uitvoering",

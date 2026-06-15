@@ -13,12 +13,14 @@ import {
   formatDelta,
 } from "@/features/scoring/criteria";
 import type { ScoringCardRow } from "@/lib/queries/scoring";
+import { cn } from "@/lib/utils";
 import { nl } from "@/messages/nl";
 
 /**
  * Pure presentational bulk history table (convention 3): all 13 criteria (rows) ×
  * assessment dates (columns, newest-first). Each cell shows the value and its delta
- * vs the next-older assessment. Plain text now — Ch6 adds color coding + sparklines.
+ * vs the next-older assessment, color-coded green (improved) / red (declined) — the
+ * one CLAUDE-mandated functional color exception to the monochrome brand.
  */
 export type ScoreHistoryTableProps = {
   history: ScoringCardRow[]; // newest-first (see lib/queries/scoring)
@@ -63,16 +65,22 @@ export function ScoreHistoryTable({ history }: ScoreHistoryTableProps) {
                   const val = card[c.key] as number;
                   const older = history[i + 1];
                   const delta = older ? val - (older[c.key] as number) : null;
+                  const up = delta != null && delta > 0;
+                  const down = delta != null && delta < 0;
                   return (
                     <TableCell
                       key={card.id}
-                      className="text-right tabular-nums"
+                      className={cn(
+                        "text-right tabular-nums",
+                        up &&
+                          "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400",
+                        down &&
+                          "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400",
+                      )}
                     >
                       {val}
                       {delta != null && delta !== 0 ? (
-                        <span className="ml-1 text-xs text-muted-foreground">
-                          {formatDelta(delta)}
-                        </span>
+                        <span className="ml-1 text-xs">{formatDelta(delta)}</span>
                       ) : null}
                     </TableCell>
                   );

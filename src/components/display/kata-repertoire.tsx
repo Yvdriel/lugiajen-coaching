@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { TrendSparkline } from "@/components/charts/trend-sparkline";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -19,6 +20,7 @@ import { nl } from "@/messages/nl";
  */
 export type KataRepertoireItem = AthleteKataItem & {
   lastAssessmentDate: string | null;
+  trend: number[]; // overall-impression trajectory, oldest→newest
 };
 
 export type KataRepertoireProps = {
@@ -53,6 +55,7 @@ export function KataRepertoire({
           <TableHead className="text-right">{k.roundOrder}</TableHead>
           <TableHead className="text-right">{k.proficiency}</TableHead>
           <TableHead>{k.lastAssessment}</TableHead>
+          <TableHead>{k.trend}</TableHead>
           {showActions ? <TableHead className="text-right" /> : null}
         </TableRow>
       </TableHeader>
@@ -83,6 +86,9 @@ export function KataRepertoire({
             </TableCell>
             <TableCell className="text-muted-foreground">
               {fmtDate(item.lastAssessmentDate)}
+            </TableCell>
+            <TableCell>
+              <TrendSparkline values={item.trend} />
             </TableCell>
             {showActions ? (
               <TableCell className="text-right">
