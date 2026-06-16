@@ -49,7 +49,12 @@ export async function FeedbackList({ items, actions }: FeedbackListProps) {
             <TableCell className="tabular-nums">{it.meetingNumber}</TableCell>
             <TableCell className="text-muted-foreground">{it.season}</TableCell>
             <TableCell>
-              <Badge variant="outline">{it.formType}</Badge>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Badge variant="outline">{it.formType}</Badge>
+                {it.status !== "completed" ? (
+                  <Badge variant="secondary">{f.status[it.status]}</Badge>
+                ) : null}
+              </div>
             </TableCell>
             {showActions ? (
               <TableCell className="text-right">

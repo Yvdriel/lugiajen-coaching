@@ -25,7 +25,20 @@ export const kataCategoryEnum = pgEnum("kata_category", [
   "development",
 ]);
 export const flexCategoryEnum = pgEnum("flex_category", ["A", "B", "C"]);
-export const formTypeEnum = pgEnum("form_type", ["U12", "U16"]);
+export const formTypeEnum = pgEnum("form_type", [
+  "U12",
+  "CADET",
+  "JUNIOR",
+  "SENIOR",
+]);
+// Feedback gesprek lifecycle. `completed` is the default so existing rows and the
+// fill-in-person path keep counting as finished meetings; the prepared-flow drafts
+// move awaiting_athlete → athlete_submitted → completed.
+export const feedbackStatusEnum = pgEnum("feedback_status", [
+  "awaiting_athlete",
+  "athlete_submitted",
+  "completed",
+]);
 export const competitionTypeEnum = pgEnum("competition_type", [
   "club",
   "regional",
@@ -135,7 +148,7 @@ export const kataScoringCards = pgTable(
   ],
 );
 
-// ── feedback_forms (parent-meeting forms; U12 / U16) ──────────────────────────
+// ── feedback_forms (parent-meeting forms; U12 / CADET / JUNIOR / SENIOR) ───────
 export const feedbackForms = pgTable("feedback_forms", {
   id: uuid("id").primaryKey().defaultRandom(),
   athleteId: uuid("athlete_id")
@@ -145,6 +158,14 @@ export const feedbackForms = pgTable("feedback_forms", {
   meetingNumber: integer("meeting_number").notNull(),
   meetingDate: date("meeting_date").notNull(),
   season: text("season").notNull(),
+  // Lifecycle — `completed` by default (fill-in-person path); prepared-flow drafts
+  // start `awaiting_athlete`. prepareToken is the per-form public hash link (null
+  // unless prepared); the three timestamps audit opened/submitted/completed.
+  status: feedbackStatusEnum("status").notNull().default("completed"),
+  prepareToken: text("prepare_token").unique(),
+  athleteOpenedAt: timestamp("athlete_opened_at"),
+  athleteSubmittedAt: timestamp("athlete_submitted_at"),
+  completedAt: timestamp("completed_at"),
   // Side A — athlete self-assessment
   athleteProudOf: text("athlete_proud_of"),
   athleteHardestThing: text("athlete_hardest_thing"),
@@ -152,29 +173,66 @@ export const feedbackForms = pgTable("feedback_forms", {
   athleteFunScore: integer("athlete_fun_score"), // U12 (1-5)
   athleteMakeMoreFun: text("athlete_make_more_fun"), // U12
   athleteQuestion: text("athlete_question"),
-  // U16 self-ratings (1-5)
+  // CADET+ self-ratings (1-5)
   selfRatingTraining: integer("self_rating_training"),
   selfRatingMotivation: integer("self_rating_motivation"),
   selfRatingBody: integer("self_rating_body"),
   selfRatingCompetition: integer("self_rating_competition"),
-  athleteNeedsWork: text("athlete_needs_work"), // U16
+  athleteNeedsWork: text("athlete_needs_work"), // CADET
+  // SENIOR-only extra self-ratings (1-5)
+  selfRatingTrainingQuality: integer("self_rating_training_quality"), // SENIOR
+  selfRatingRecovery: integer("self_rating_recovery"), // SENIOR
+  selfRatingMental: integer("self_rating_mental"), // SENIOR
+  // JUNIOR + SENIOR reflections
+  trainingQualityReflection: text("training_quality_reflection"), // JUNIOR+SENIOR
+  competitionReflection: text("competition_reflection"), // JUNIOR+SENIOR
+  mentalPreparation: text("mental_preparation"), // JUNIOR
+  // SENIOR-only reflections
+  mentalPreparationReview: text("mental_preparation_review"), // SENIOR
+  trainingPeriodReflection: text("training_period_reflection"), // SENIOR
+  physicalStateNotes: text("physical_state_notes"), // SENIOR
+  athleteDiscussionPoints: text("athlete_discussion_points"), // SENIOR
   // Side B — coach
   coachStrength: text("coach_strength"),
   coachDevelopmentArea: text("coach_development_area"),
+  trainingStructureFeedback: text("training_structure_feedback"), // JUNIOR+SENIOR
+  previousGoalsReview: text("previous_goals_review"), // SENIOR
   // Goals
   goalMain: text("goal_main"),
-  goalPerformance: text("goal_performance"), // U16
-  goalOutcome: text("goal_outcome"), // U16
-  kataFocus: text("kata_focus"), // U16
-  // Action items (up to 3)
+  goalPerformance: text("goal_performance"), // CADET+
+  goalOutcome: text("goal_outcome"), // CADET+
+  kataFocus: text("kata_focus"), // CADET+
+  periodizationNotes: text("periodization_notes"), // JUNIOR+SENIOR
+  physicalPlan: text("physical_plan"), // SENIOR
+  // Action items (up to 3, SENIOR adds a 4th)
   action1: text("action_1"),
   action2: text("action_2"),
   action3: text("action_3"),
+  action4: text("action_4"), // SENIOR
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at")
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
+}, (t) => [
+  // Hot path: per-athlete lists filtered to completed gesprekken (stats, portal,
+  // dashboard "days since last feedback").
+  index("feedback_athlete_status_idx").on(t.athleteId, t.status),
+]);
+
+// ── feedback_kata_ratings (athlete kata self-score per feedback gesprek) ───────
+// One row per rated kata. Set is replaced on edit (delete + reinsert).
+export const feedbackKataRatings = pgTable("feedback_kata_ratings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  feedbackId: uuid("feedback_id")
+    .notNull()
+    .references(() => feedbackForms.id, { onDelete: "cascade" }),
+  kataId: uuid("kata_id")
+    .notNull()
+    .references(() => kata.id, { onDelete: "cascade" }),
+  score: integer("score"), // self-score 1-10
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // ── competitions ──────────────────────────────────────────────────────────────
@@ -266,6 +324,7 @@ export const athleteNotesRelations = relations(athleteNotes, ({ one }) => ({
 export const kataRelations = relations(kata, ({ many }) => ({
   athleteKata: many(athleteKata),
   scoringCards: many(kataScoringCards),
+  feedbackKataRatings: many(feedbackKataRatings),
 }));
 
 export const athleteKataRelations = relations(athleteKata, ({ one }) => ({
@@ -290,12 +349,30 @@ export const kataScoringCardsRelations = relations(
   }),
 );
 
-export const feedbackFormsRelations = relations(feedbackForms, ({ one }) => ({
-  athlete: one(athletes, {
-    fields: [feedbackForms.athleteId],
-    references: [athletes.id],
+export const feedbackFormsRelations = relations(
+  feedbackForms,
+  ({ one, many }) => ({
+    athlete: one(athletes, {
+      fields: [feedbackForms.athleteId],
+      references: [athletes.id],
+    }),
+    kataRatings: many(feedbackKataRatings),
   }),
-}));
+);
+
+export const feedbackKataRatingsRelations = relations(
+  feedbackKataRatings,
+  ({ one }) => ({
+    feedback: one(feedbackForms, {
+      fields: [feedbackKataRatings.feedbackId],
+      references: [feedbackForms.id],
+    }),
+    kata: one(kata, {
+      fields: [feedbackKataRatings.kataId],
+      references: [kata.id],
+    }),
+  }),
+);
 
 export const competitionsRelations = relations(competitions, ({ many }) => ({
   entries: many(competitionEntries),

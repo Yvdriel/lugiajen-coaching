@@ -62,6 +62,8 @@ export async function getAthleteCards(): Promise<AthleteCard[]> {
       last: sql<string>`max(${feedbackForms.meetingDate})`,
     })
     .from(feedbackForms)
+    // Only completed gesprekken reset the "days since last feedback" clock.
+    .where(eq(feedbackForms.status, "completed"))
     .groupBy(feedbackForms.athleteId);
   const lastMap = new Map(lastFeedback.map((r) => [r.athleteId, r.last]));
 
@@ -110,6 +112,8 @@ export async function getRecentActivity(limit = 8): Promise<ActivityItem[]> {
     })
     .from(feedbackForms)
     .innerJoin(athletes, eq(feedbackForms.athleteId, athletes.id))
+    // Recent activity = finished gesprekken, not drafts awaiting the athlete.
+    .where(eq(feedbackForms.status, "completed"))
     .orderBy(desc(feedbackForms.createdAt))
     .limit(limit);
 

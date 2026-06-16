@@ -63,6 +63,8 @@ export async function getAthletesList(
         last: sql<string>`max(${feedbackForms.meetingDate})`,
       })
       .from(feedbackForms)
+      // Drafts don't count as feedback for the list's "last feedback" column/sort.
+      .where(eq(feedbackForms.status, "completed"))
       .groupBy(feedbackForms.athleteId),
     db
       .select({

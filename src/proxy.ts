@@ -8,10 +8,12 @@ import { DEFAULT_LOCALE, isLocale, messages } from "@/messages";
 const LOCALE_COOKIE = "lgj_locale";
 
 // Next.js 16 renamed `middleware` → `proxy` (runs on the nodejs runtime, so the
-// in-memory rate limiter keeps state across requests). Guards the public athlete
-// portal only.
+// in-memory rate limiter keeps state across requests). Guards the public surfaces:
+// the athlete portal and the athlete-prepare page. For both, the token is the 4th
+// path segment (`/athlete/view/<t>` and `/feedback/prepare/<t>`), so the handler's
+// token parsing and headers apply unchanged.
 export const config = {
-  matcher: "/athlete/view/:path*",
+  matcher: ["/athlete/view/:path*", "/feedback/prepare/:path*"],
 };
 
 function withPublicHeaders(res: NextResponse): NextResponse {

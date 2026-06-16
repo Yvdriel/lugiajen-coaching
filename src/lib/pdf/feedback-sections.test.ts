@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
-import type { FeedbackRow } from "@/lib/queries/feedback";
+import type {
+  FeedbackKataRatingRow,
+  FeedbackRow,
+} from "@/lib/queries/feedback";
 import { nl } from "@/messages/nl";
 import { feedbackSections } from "./feedback-sections";
 
 function form(overrides: Partial<FeedbackRow>): FeedbackRow {
-  // Start from all-null content; tests set only what they assert on.
+  // Start from all-null content; tests set only what they assert on. Fields not
+  // listed here read as undefined and are dropped by `clean`, same as null.
   return {
-    formType: "U16",
+    formType: "CADET",
     meetingNumber: 1,
     meetingDate: "2026-01-01",
     season: "2026/2027",
@@ -38,29 +42,30 @@ const labels = (s: ReturnType<typeof feedbackSections>[number]) =>
   s.fields.map((f) => f.label);
 
 describe("feedbackSections", () => {
-  it("U12 picks fun/show-parents, never the U16 self-ratings", () => {
+  it("U12 labels the single goal as goalMain (not the process goal)", () => {
     const sections = feedbackSections(
       form({
         formType: "U12",
         athleteFunScore: 4,
         athleteShowParents: "Mijn kata",
-        selfRatingTraining: 5, // present in data but must be ignored for U12
+        goalMain: "Mooie zenkutsu",
       }),
       nl,
     );
     const sideA = sections.find((s) => s.title === nl.feedback.sideA);
-    expect(sideA).toBeTruthy();
     expect(labels(sideA!)).toContain(nl.feedback.fields.athleteFunScore);
     expect(labels(sideA!)).toContain(nl.feedback.fields.athleteShowParents);
-    expect(labels(sideA!)).not.toContain(nl.feedback.fields.selfRatingTraining);
+
+    const goals = sections.find((s) => s.title === nl.feedback.goals)!;
+    expect(labels(goals)).toContain(nl.feedback.fields.goalMain);
+    expect(labels(goals)).not.toContain(nl.feedback.fields.goalMainProcess);
   });
 
-  it("U16 picks self-ratings + performance/outcome/kata-focus goals", () => {
+  it("CADET shows self-ratings + the three-tier goals (process label)", () => {
     const sections = feedbackSections(
       form({
-        formType: "U16",
+        formType: "CADET",
         selfRatingTraining: 5,
-        athleteFunScore: 3, // present but must be ignored for U16
         goalMain: "Procesdoel",
         goalPerformance: "Top 3",
         kataFocus: "Kanku Dai",
@@ -69,7 +74,6 @@ describe("feedbackSections", () => {
     );
     const sideA = sections.find((s) => s.title === nl.feedback.sideA)!;
     expect(labels(sideA)).toContain(nl.feedback.fields.selfRatingTraining);
-    expect(labels(sideA)).not.toContain(nl.feedback.fields.athleteFunScore);
 
     const goals = sections.find((s) => s.title === nl.feedback.goals)!;
     expect(labels(goals)).toEqual([
@@ -79,12 +83,45 @@ describe("feedbackSections", () => {
     ]);
   });
 
+  it("SENIOR surfaces senior-only fields + the 4th action", () => {
+    const sections = feedbackSections(
+      form({
+        formType: "SENIOR",
+        selfRatingRecovery: 3,
+        physicalStateNotes: "Lichte knieklacht",
+        physicalPlan: "2x mobiliteit per week",
+        action4: "Slaaplog bijhouden",
+      }),
+      nl,
+    );
+    const sideA = sections.find((s) => s.title === nl.feedback.sideA)!;
+    expect(labels(sideA)).toContain(nl.feedback.fields.selfRatingRecovery);
+    expect(labels(sideA)).toContain(nl.feedback.fields.physicalStateNotes);
+
+    const goals = sections.find((s) => s.title === nl.feedback.goals)!;
+    expect(labels(goals)).toContain(nl.feedback.fields.physicalPlan);
+
+    const actions = sections.find((s) => s.title === nl.feedback.actionItems)!;
+    expect(labels(actions)).toContain(nl.feedback.fields.action4);
+  });
+
+  it("includes a kata self-rating section when ratings are passed", () => {
+    const ratings: FeedbackKataRatingRow[] = [
+      { kataId: "k1", kataName: "Unsu", score: 7, notes: "Sprong hoger" },
+      { kataId: "k2", kataName: "Sochin", score: null, notes: "Stabiel" },
+    ];
+    const sections = feedbackSections(form({ formType: "CADET" }), nl, ratings);
+    const kata = sections.find((s) => s.title === nl.feedback.kataSelfRating)!;
+    expect(kata).toBeTruthy();
+    expect(labels(kata)).toEqual(["Unsu", "Sochin"]);
+    expect(kata.fields[0].value).toContain("7/10");
+  });
+
   it("drops empty fields and fully-empty sections", () => {
     const sections = feedbackSections(
       form({ formType: "U12", coachStrength: "Goede focus" }),
       nl,
     );
-    // Only Side B has content → it's the only section.
     expect(sections.map((s) => s.title)).toEqual([nl.feedback.sideB]);
     expect(sections[0].fields).toHaveLength(1);
   });

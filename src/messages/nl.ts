@@ -226,6 +226,34 @@ export const nl = {
     goals: "Doelen",
     actionItems: "Actiepunten",
     save: "Gesprek opslaan",
+    kataSelfRating: "Mijn kata — eerlijke zelfscore",
+    kataSelfRatingHint: "Geef per kata een eerlijke score (1-10) en korte notitie.",
+    kataSelfScore: "Score (1-10)",
+    kataSelfNotes: "Notitie",
+    // Prepared-flow (coach side)
+    letPrepare: "Laat de atleet zich voorbereiden?",
+    letPrepareHint:
+      "De atleet vult vooraf zijn eigen deel in via een link. De rest vul je samen in tijdens het gesprek.",
+    prepareYes: "Ja, atleet bereidt voor",
+    prepareNo: "Nee, nu samen invullen",
+    createDraft: "Concept aanmaken",
+    startMeeting: "Gesprek starten",
+    complete: "Gesprek afronden",
+    sharePrepareLink: "Voorbereidingslink kopiëren",
+    prepareLinkCopied: "Gekopieerd!",
+    deleteDraft: "Concept verwijderen",
+    confirmDeleteDraft: "Concept verwijderen? Dit kan niet ongedaan worden gemaakt.",
+    awaitingAthlete: "Concept — wacht op atleet",
+    openedAt: "Geopend",
+    submittedAt: "Ingevuld",
+    notOpenedYet: "Nog niet geopend",
+    lock: "Vergrendelen",
+    unlock: "Bewerken",
+    status: {
+      awaiting_athlete: "Concept",
+      athlete_submitted: "Ingevuld",
+      completed: "Afgerond",
+    },
     fields: {
       athleteProudOf: "Waar ben je trots op?",
       athleteHardestThing: "Wat vond je het moeilijkst?",
@@ -233,21 +261,46 @@ export const nl = {
       athleteFunScore: "Hoe leuk vind je karate? (1-5)",
       athleteMakeMoreFun: "Wat zou karate nog leuker maken?",
       athleteQuestion: "Heb je een vraag voor de coach?",
-      selfRatingTraining: "Training (1-5)",
+      selfRatingTraining: "Hoe gaat mijn training? (1-5)",
+      selfRatingTrainingQuality: "Kwaliteit van mijn trainingen (1-5)",
       selfRatingMotivation: "Motivatie (1-5)",
-      selfRatingBody: "Lichaam / fitheid (1-5)",
-      selfRatingCompetition: "Wedstrijd (1-5)",
-      athleteNeedsWork: "Wat heeft nog werk nodig?",
-      coachStrength: "Sterkste punt",
+      selfRatingBody: "Hoe voelt mijn lichaam? (1-5)",
+      selfRatingRecovery: "Herstel — slaap, energie, rust (1-5)",
+      selfRatingCompetition: "Wedstrijdklaar (1-5)",
+      selfRatingMental: "Hoe voel ik me mentaal? (1-5)",
+      athleteNeedsWork: "Waar ik denk dat ik aan moet werken",
+      trainingQualityReflection:
+        "Hoe heb ik de afgelopen periode getraind? Waar ben ik tevreden over en wat had beter gekund?",
+      trainingPeriodReflection:
+        "Hoe heb ik de afgelopen periode ervaren? Beschrijf hoe de trainingen voelden, wat goed ging en waar je mee worstelde.",
+      physicalStateNotes:
+        "Fysieke klachten, pijn, blessures of zorgen? Hoe is je energieniveau?",
+      competitionReflection:
+        "Wat heb ik geleerd van mijn laatste wedstrijd(en)? Wat ging goed en wat neem ik mee naar de training?",
+      mentalPreparation:
+        "Hoe bereid ik me mentaal voor op trainingen en wedstrijden? Wat werkt en wat nog niet?",
+      mentalPreparationReview:
+        "Hoe werkt mijn mentale voorbereiding? Wat doe ik voor/tijdens/na de wedstrijd en wat wil ik veranderen?",
+      athleteDiscussionPoints:
+        "Onderwerpen die ik wil bespreken met mijn coach",
+      coachStrength: "Sterke punten",
       coachDevelopmentArea: "Ontwikkelpunt",
+      trainingStructureFeedback:
+        "Feedback op trainingsopbouw, belasting en kwaliteit",
+      previousGoalsReview:
+        "Evaluatie vorige doelen — wat is bereikt, wat niet, en waarom?",
       goalMain: "Hoofddoel",
       goalMainProcess: "Procesdoel",
       goalPerformance: "Prestatiedoel",
-      goalOutcome: "Uitkomstdoel",
+      goalOutcome: "Resultaatdoel",
       kataFocus: "Kata-focus",
+      periodizationNotes:
+        "Trainingsplanning — waar zitten we en wat komt eraan?",
+      physicalPlan: "Afspraken fysiek (S&C, mobiliteit, herstel, preventie)",
       action1: "Actie 1",
       action2: "Actie 2",
       action3: "Actie 3",
+      action4: "Actie 4",
     },
   },
   competition: {
@@ -335,5 +388,20 @@ export const nl = {
     title: "Atleetprofiel",
     readOnly: "Alleen-lezen weergave voor de atleet en ouders.",
     rateLimited: "Te veel verzoeken. Probeer het later opnieuw.",
+    prepareCta: "Je coach heeft een gesprek klaargezet — vul je deel in",
+    prepareOpen: "Invullen",
+    preparePending: "Ingevuld — wacht op het gesprek",
+  },
+  // Athlete-facing prepare page (always Dutch).
+  prepare: {
+    title: "Bereid je gesprek voor",
+    intro:
+      "Vul alvast je eigen deel in. Je coach bespreekt de rest tijdens jullie gesprek.",
+    submit: "Versturen",
+    submitted: "Bedankt! Je antwoorden zijn opgeslagen.",
+    submittedHint: "Je coach neemt ze door tijdens jullie gesprek.",
+    alreadyDone: "Dit gesprek is al gehouden.",
+    yourAnswers: "Jouw antwoorden",
+    notFound: "Deze link is niet (meer) geldig.",
   },
 } as const;
