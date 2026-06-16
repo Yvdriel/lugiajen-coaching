@@ -40,8 +40,8 @@ export function ScoreTrendChart({ history }: { history: ScoringCardRow[] }) {
         <CartesianGrid vertical={false} />
         <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
         <YAxis
-          domain={[1, 10]}
-          ticks={[2, 4, 6, 8, 10]}
+          domain={[0, 100]}
+          ticks={[0, 20, 40, 60, 80, 100]}
           tickLine={false}
           axisLine={false}
           width={28}

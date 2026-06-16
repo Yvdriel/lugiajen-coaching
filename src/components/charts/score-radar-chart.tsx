@@ -34,7 +34,7 @@ export function ScoreRadarChart({ card }: { card: ScoringCardRow }) {
       <RadarChart data={data} outerRadius="70%">
         <PolarGrid />
         <PolarAngleAxis dataKey="criterion" tick={{ fontSize: 10 }} />
-        <PolarRadiusAxis domain={[0, 10]} tick={false} axisLine={false} />
+        <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
         <Radar
           dataKey="score"
           stroke="var(--color-score)"

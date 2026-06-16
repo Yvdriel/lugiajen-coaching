@@ -14,7 +14,7 @@ export const athleteKataSchema = z.object({
   ),
   proficiency: z.preprocess(
     emptyToUndef,
-    z.coerce.number().int().min(1, "Minimaal 1.").max(10, "Maximaal 10.").default(1),
+    z.coerce.number().int().min(0, "Minimaal 0.").max(100, "Maximaal 100.").default(1),
   ),
   notes: z.preprocess(emptyToUndef, z.string().optional()),
 });

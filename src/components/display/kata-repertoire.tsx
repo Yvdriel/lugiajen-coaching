@@ -82,7 +82,7 @@ export async function KataRepertoire({
               {item.roundOrder ?? "—"}
             </TableCell>
             <TableCell className="text-right tabular-nums">
-              {item.proficiency}/10
+              {item.proficiency}/100
             </TableCell>
             <TableCell className="text-muted-foreground">
               {fmtDate(item.lastAssessmentDate)}

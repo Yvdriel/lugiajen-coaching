@@ -83,7 +83,7 @@ export const athleteKata = pgTable("athlete_kata", {
     .references(() => kata.id, { onDelete: "cascade" }),
   roundOrder: integer("round_order"),
   isCompetitionKata: boolean("is_competition_kata").notNull().default(false),
-  proficiency: integer("proficiency").notNull().default(1), // 1-10
+  proficiency: integer("proficiency").notNull().default(1), // 0-100
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at")
@@ -104,7 +104,7 @@ export const kataScoringCards = pgTable(
       .notNull()
       .references(() => kata.id, { onDelete: "cascade" }),
     assessmentDate: date("assessment_date").notNull(),
-    // WKF technical performance (1-10)
+    // WKF technical performance (0-100)
     stances: integer("stances").notNull(),
     techniques: integer("techniques").notNull(),
     transitions: integer("transitions").notNull(),
@@ -113,7 +113,7 @@ export const kataScoringCards = pgTable(
     kiai: integer("kiai").notNull(),
     kime: integer("kime").notNull(),
     conformance: integer("conformance").notNull(),
-    // WKF athletic performance (1-10)
+    // WKF athletic performance (0-100)
     strength: integer("strength").notNull(),
     speed: integer("speed").notNull(),
     balance: integer("balance").notNull(),

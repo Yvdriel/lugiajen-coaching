@@ -115,8 +115,8 @@ export function ScoringCardForm({
                   </div>
                   <Input
                     type="number"
-                    min={1}
-                    max={10}
+                    min={0}
+                    max={100}
                     inputMode="numeric"
                     {...register(key)}
                   />

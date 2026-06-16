@@ -5,7 +5,7 @@ import type { kataScoringCards } from "@/db/schema";
 
 export type CriterionGroup = "technical" | "athletic" | "overall";
 
-// Numeric criteria keys map 1:1 to `kata_scoring_cards` integer columns (1-10).
+// Numeric criteria keys map 1:1 to `kata_scoring_cards` integer columns (0-100).
 export type NumericCriterionKey =
   | "stances"
   | "techniques"

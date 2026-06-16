@@ -5,10 +5,10 @@ import { z } from "zod";
 // with criteria.ts (which compile-checks them against the table's insert type).
 
 const score = z.coerce
-  .number({ message: "Vereist (1-10)." })
+  .number({ message: "Vereist (0-100)." })
   .int("Geheel getal.")
-  .min(1, "Minimaal 1.")
-  .max(10, "Maximaal 10.");
+  .min(0, "Minimaal 0.")
+  .max(100, "Maximaal 100.");
 
 const emptyToUndef = (v: unknown) => (v === "" || v == null ? undefined : v);
 const optText = z.preprocess(emptyToUndef, z.string().optional());

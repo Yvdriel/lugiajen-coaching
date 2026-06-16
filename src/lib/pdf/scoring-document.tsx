@@ -48,7 +48,7 @@ export function ScoringDocument({
                       <StatRow
                         key={c.key}
                         label={m.scoring.criteria[c.key]}
-                        value={`${latest[c.key]} / 10`}
+                        value={`${latest[c.key]} / 100`}
                       />
                     ))}
                   </View>
@@ -88,7 +88,7 @@ export function ScoringDocument({
                   <StatRow
                     key={card.id}
                     label={formatDate(card.assessmentDate, locale)}
-                    value={`${card.overallImpression} / 10`}
+                    value={`${card.overallImpression} / 100`}
                   />
                 ))}
               </View>

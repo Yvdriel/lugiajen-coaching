@@ -77,7 +77,7 @@ export function AthleteKataEditForm({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label>{k.proficiency}</Label>
-          <Input type="number" min={1} max={10} {...register("proficiency")} />
+          <Input type="number" min={0} max={100} {...register("proficiency")} />
           {errors.proficiency?.message ? (
             <p className="text-sm text-destructive">
               {errors.proficiency.message}

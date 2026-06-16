@@ -75,8 +75,8 @@ export function AssignKataForm({
           <Label>{k.proficiency}</Label>
           <Input
             type="number"
-            min={1}
-            max={10}
+            min={0}
+            max={100}
             name="proficiency"
             defaultValue={1}
           />
