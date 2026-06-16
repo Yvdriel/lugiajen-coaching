@@ -1,7 +1,10 @@
 import { Document, Page, View } from "@react-pdf/renderer";
 import { formatDate } from "@/i18n/format";
 import type { Locale, Messages } from "@/messages";
-import type { FeedbackRow } from "@/lib/queries/feedback";
+import type {
+  FeedbackKataRatingRow,
+  FeedbackRow,
+} from "@/lib/queries/feedback";
 import { feedbackSections } from "./feedback-sections";
 import { DocHeader, Field, Footer, SectionTitle, styles } from "./styles";
 
@@ -13,15 +16,17 @@ type Athlete = { firstName: string; lastName: string };
 export function FeedbackDocument({
   athlete,
   form,
+  kataRatings = [],
   m,
   locale,
 }: {
   athlete: Athlete;
   form: FeedbackRow;
+  kataRatings?: FeedbackKataRatingRow[];
   m: Messages;
   locale: Locale;
 }) {
-  const sections = feedbackSections(form, m);
+  const sections = feedbackSections(form, m, kataRatings);
   const name = `${athlete.firstName} ${athlete.lastName}`;
   const subtitle = `${name} · ${m.feedback.meeting} ${form.meetingNumber} · ${formatDate(form.meetingDate, locale)} · ${form.season} · ${form.formType}`;
 

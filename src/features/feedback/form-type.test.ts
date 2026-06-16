@@ -1,15 +1,35 @@
 import { describe, expect, it } from "vitest";
-import { currentSeason, recommendedFormType } from "./form-type";
+import {
+  currentSeason,
+  maxMeetingNumber,
+  recommendedFormType,
+} from "./form-type";
 
 describe("recommendedFormType", () => {
-  it("picks U12 at the boundary and below", () => {
+  it("picks U12 below 12", () => {
     expect(recommendedFormType(9)).toBe("U12");
-    expect(recommendedFormType(12)).toBe("U12");
+    expect(recommendedFormType(11)).toBe("U12");
   });
-  it("picks U16 from 13 up", () => {
-    expect(recommendedFormType(13)).toBe("U16");
-    expect(recommendedFormType(17)).toBe("U16");
-    expect(recommendedFormType(21)).toBe("U16");
+  it("picks CADET from 12 to 15", () => {
+    expect(recommendedFormType(12)).toBe("CADET");
+    expect(recommendedFormType(15)).toBe("CADET");
+  });
+  it("picks JUNIOR from 16 to 17", () => {
+    expect(recommendedFormType(16)).toBe("JUNIOR");
+    expect(recommendedFormType(17)).toBe("JUNIOR");
+  });
+  it("picks SENIOR from 18 up", () => {
+    expect(recommendedFormType(18)).toBe("SENIOR");
+    expect(recommendedFormType(21)).toBe("SENIOR");
+  });
+});
+
+describe("maxMeetingNumber", () => {
+  it("caps U12/CADET at 3, JUNIOR/SENIOR at 12", () => {
+    expect(maxMeetingNumber("U12")).toBe(3);
+    expect(maxMeetingNumber("CADET")).toBe(3);
+    expect(maxMeetingNumber("JUNIOR")).toBe(12);
+    expect(maxMeetingNumber("SENIOR")).toBe(12);
   });
 });
 

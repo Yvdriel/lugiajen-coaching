@@ -3,19 +3,21 @@
 import { Input } from "@/components/ui/input";
 import { useMessages } from "@/i18n/client";
 import {
+  CoachSection,
   Field,
-  type FeedbackTemplateProps,
   FeedbackFormShell,
+  type KataTemplateProps,
+  KataSelfRating,
   RatingField,
   Section,
   TextField,
 } from "./feedback-fields";
 
-export function FeedbackFormU16(props: FeedbackTemplateProps) {
+export function FeedbackFormCadet({ repertoire, ...props }: KataTemplateProps) {
   const nl = useMessages();
   const f = nl.feedback;
   return (
-    <FeedbackFormShell formType="U16" {...props}>
+    <FeedbackFormShell formType="CADET" {...props}>
       {(register, errors) => (
         <>
           <Section title={f.sideA}>
@@ -66,6 +68,10 @@ export function FeedbackFormU16(props: FeedbackTemplateProps) {
               register={register}
             />
           </Section>
+
+          <KataSelfRating repertoire={repertoire} register={register} />
+
+          <CoachSection register={register} />
 
           <Section title={f.goals}>
             <Field label={f.fields.goalMainProcess}>

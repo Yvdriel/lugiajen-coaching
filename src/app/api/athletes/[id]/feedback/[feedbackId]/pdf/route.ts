@@ -3,7 +3,10 @@ import { getLocale, getMessages } from "@/i18n/server";
 import { FeedbackDocument } from "@/lib/pdf/feedback-document";
 import { assertCoach, pdfResponse, renderPdf, safeName } from "@/lib/pdf/http";
 import { getAthleteById } from "@/lib/queries/athletes";
-import { getFeedbackById } from "@/lib/queries/feedback";
+import {
+  getFeedbackById,
+  getFeedbackKataRatings,
+} from "@/lib/queries/feedback";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,9 +19,10 @@ export async function GET(
   if (denied) return denied;
 
   const { id, feedbackId } = await params;
-  const [athlete, form] = await Promise.all([
+  const [athlete, form, kataRatings] = await Promise.all([
     getAthleteById(id),
     getFeedbackById(feedbackId),
+    getFeedbackKataRatings(feedbackId),
   ]);
   if (!athlete || !form || form.athleteId !== athlete.id) {
     return new Response("Not found", { status: 404 });
@@ -26,7 +30,7 @@ export async function GET(
 
   const [m, locale] = await Promise.all([getMessages(), getLocale()]);
   const buffer = await renderPdf(
-    createElement(FeedbackDocument, { athlete, form, m, locale }),
+    createElement(FeedbackDocument, { athlete, form, kataRatings, m, locale }),
   );
   return pdfResponse(
     buffer,

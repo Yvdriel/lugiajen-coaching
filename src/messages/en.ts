@@ -228,6 +228,10 @@ export const en: Messages = {
     goals: "Goals",
     actionItems: "Action items",
     save: "Save meeting",
+    kataSelfRating: "My kata — honest self-score",
+    kataSelfRatingHint: "Give each kata an honest score (1-10) and a short note.",
+    kataSelfScore: "Score (1-10)",
+    kataSelfNotes: "Note",
     fields: {
       athleteProudOf: "What are you proud of?",
       athleteHardestThing: "What did you find hardest?",
@@ -235,21 +239,45 @@ export const en: Messages = {
       athleteFunScore: "How much fun is karate for you? (1-5)",
       athleteMakeMoreFun: "What would make karate even more fun?",
       athleteQuestion: "Do you have a question for the coach?",
-      selfRatingTraining: "Training (1-5)",
+      selfRatingTraining: "How is my training going? (1-5)",
+      selfRatingTrainingQuality: "Quality of my training (1-5)",
       selfRatingMotivation: "Motivation (1-5)",
-      selfRatingBody: "Body / fitness (1-5)",
-      selfRatingCompetition: "Competition (1-5)",
-      athleteNeedsWork: "What still needs work?",
-      coachStrength: "Strongest point",
+      selfRatingBody: "How does my body feel? (1-5)",
+      selfRatingRecovery: "Recovery — sleep, energy, rest (1-5)",
+      selfRatingCompetition: "Competition-ready (1-5)",
+      selfRatingMental: "How do I feel mentally? (1-5)",
+      athleteNeedsWork: "What I think I need to work on",
+      trainingQualityReflection:
+        "How have I trained recently? What am I happy with and what could have been better?",
+      trainingPeriodReflection:
+        "How did I experience the past period? Describe how training felt, what went well and what you struggled with.",
+      physicalStateNotes:
+        "Any physical complaints, pain, injuries or concerns? How is your energy level?",
+      competitionReflection:
+        "What did I learn from my last competition(s)? What went well and what do I take to training?",
+      mentalPreparation:
+        "How do I prepare mentally for training and competition? What works and what doesn't yet?",
+      mentalPreparationReview:
+        "How does my mental preparation work? What do I do before/during/after a competition and what do I want to change?",
+      athleteDiscussionPoints: "Topics I want to discuss with my coach",
+      coachStrength: "Strengths",
       coachDevelopmentArea: "Development area",
+      trainingStructureFeedback:
+        "Feedback on training structure, load and quality",
+      previousGoalsReview:
+        "Review of previous goals — what was achieved, what wasn't, and why?",
       goalMain: "Main goal",
       goalMainProcess: "Process goal",
       goalPerformance: "Performance goal",
       goalOutcome: "Outcome goal",
       kataFocus: "Kata focus",
+      periodizationNotes:
+        "Training planning — where are we and what's coming up?",
+      physicalPlan: "Physical agreements (S&C, mobility, recovery, prevention)",
       action1: "Action 1",
       action2: "Action 2",
       action3: "Action 3",
+      action4: "Action 4",
     },
   },
   competition: {

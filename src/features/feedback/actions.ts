@@ -4,13 +4,16 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { feedbackForms } from "@/db/schema";
+import { feedbackForms, feedbackKataRatings } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getAthleteKata } from "@/lib/queries/kata";
 import {
   FEEDBACK_CONTENT_FIELDS,
   type FeedbackParsed,
   feedbackSchema,
+  type KataRatingInput,
+  parseKataRatings,
 } from "./schema";
 
 export type FeedbackFormState = {
@@ -61,6 +64,29 @@ function toValues(d: FeedbackParsed) {
   return out as typeof feedbackForms.$inferInsert;
 }
 
+// Read the athlete's repertoire so we know which kr_* keys the form posted, then
+// turn them into child rows for the given feedback id (U12 posts none).
+async function readKataRatings(
+  athleteId: string,
+  formData: FormData,
+): Promise<KataRatingInput[]> {
+  const repertoire = await getAthleteKata(athleteId);
+  return parseKataRatings(
+    formData,
+    repertoire.map((r) => r.kataId),
+  );
+}
+
+async function insertKataRatings(
+  feedbackId: string,
+  ratings: KataRatingInput[],
+) {
+  if (ratings.length === 0) return;
+  await db
+    .insert(feedbackKataRatings)
+    .values(ratings.map((r) => ({ ...r, feedbackId })));
+}
+
 export async function createFeedback(
   _prev: FeedbackFormState,
   formData: FormData,
@@ -74,10 +100,12 @@ export async function createFeedback(
     return { ok: false, fieldErrors: toFieldErrors(parsed.error.issues) };
   }
 
+  const ratings = await readKataRatings(athleteId, formData);
   const [created] = await db
     .insert(feedbackForms)
     .values({ ...toValues(parsed.data), athleteId })
     .returning({ id: feedbackForms.id });
+  await insertKataRatings(created.id, ratings);
 
   revalidatePath(`/athletes/${athleteId}`);
   redirect(`/athletes/${athleteId}/feedback/${created.id}`);
@@ -97,10 +125,16 @@ export async function updateFeedback(
     return { ok: false, fieldErrors: toFieldErrors(parsed.error.issues) };
   }
 
+  const ratings = await readKataRatings(athleteId, formData);
   await db
     .update(feedbackForms)
     .set(toValues(parsed.data))
     .where(eq(feedbackForms.id, id));
+  // Replace the kata-rating set (append-free; the form posts the full set).
+  await db
+    .delete(feedbackKataRatings)
+    .where(eq(feedbackKataRatings.feedbackId, id));
+  await insertKataRatings(id, ratings);
 
   revalidatePath(`/athletes/${athleteId}`);
   redirect(`/athletes/${athleteId}/feedback/${id}`);

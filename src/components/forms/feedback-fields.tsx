@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { FeedbackFormState } from "@/features/feedback/actions";
-import type { FormType } from "@/features/feedback/form-type";
+import { type FormType, maxMeetingNumber } from "@/features/feedback/form-type";
+import { kataNotesField, kataScoreField } from "@/features/feedback/schema";
 import { useMessages } from "@/i18n/client";
 
-// Shared primitives for the U12 / U16 feedback forms. All field values are strings
+// Shared primitives for the feedback forms (all templates). All field values are strings
 // (native FormData); the server coerces. RHF register is typed over a string record.
 export type FBValues = Record<string, string>;
 export type FBRegister = UseFormRegister<FBValues>;
@@ -89,16 +90,23 @@ export function RatingField({
 export function HeaderFields({
   register,
   errors,
+  maxMeeting = 3,
 }: {
   register: FBRegister;
   errors: FBErrors;
+  maxMeeting?: number;
 }) {
   const nl = useMessages();
   const f = nl.feedback;
   return (
     <div className="grid gap-4 sm:grid-cols-3">
       <Field label={f.meeting} error={errors.meetingNumber?.message}>
-        <Input type="number" min={1} max={3} {...register("meetingNumber")} />
+        <Input
+          type="number"
+          min={1}
+          max={maxMeeting}
+          {...register("meetingNumber")}
+        />
       </Field>
       <Field label={f.date} error={errors.meetingDate?.message}>
         <Input type="date" {...register("meetingDate")} />
@@ -129,7 +137,13 @@ export function CoachSection({ register }: { register: FBRegister }) {
   );
 }
 
-export function ActionItems({ register }: { register: FBRegister }) {
+export function ActionItems({
+  register,
+  formType,
+}: {
+  register: FBRegister;
+  formType: FormType;
+}) {
   const nl = useMessages();
   const f = nl.feedback;
   return (
@@ -143,15 +157,65 @@ export function ActionItems({ register }: { register: FBRegister }) {
       <Field label={f.fields.action3}>
         <Input {...register("action3")} />
       </Field>
+      {formType === "SENIOR" ? (
+        <Field label={f.fields.action4}>
+          <Input {...register("action4")} />
+        </Field>
+      ) : null}
+    </Section>
+  );
+}
+
+// ── Kata self-rating (CADET / JUNIOR / SENIOR) ────────────────────────────────
+export type KataRepertoireItem = { kataId: string; kataName: string };
+
+export function KataSelfRating({
+  repertoire,
+  register,
+}: {
+  repertoire: KataRepertoireItem[];
+  register: FBRegister;
+}) {
+  const nl = useMessages();
+  const f = nl.feedback;
+  if (repertoire.length === 0) return null;
+  return (
+    <Section title={f.kataSelfRating}>
+      <p className="text-sm text-muted-foreground">{f.kataSelfRatingHint}</p>
+      <div className="flex flex-col gap-3">
+        {repertoire.map((k) => (
+          <div
+            key={k.kataId}
+            className="flex flex-col gap-2 rounded-md border p-3"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium">{k.kataName}</span>
+              <Input
+                type="number"
+                min={1}
+                max={10}
+                className="w-20"
+                aria-label={`${k.kataName} — ${f.kataSelfScore}`}
+                {...register(kataScoreField(k.kataId))}
+              />
+            </div>
+            <Textarea
+              rows={2}
+              placeholder={f.kataSelfNotes}
+              {...register(kataNotesField(k.kataId))}
+            />
+          </div>
+        ))}
+      </div>
     </Section>
   );
 }
 
 /**
- * Shared RHF wiring for both templates: header (gesprek/datum/seizoen) + the
- * template-specific Side A & goals (via `children`) + coach side + action items.
- * Native FormData + server-authoritative zod (no client resolver), `setError`
- * re-hydration. Used for create (no `feedbackId`) and edit.
+ * Shared RHF wiring for every template: header (gesprek/datum/seizoen) + the
+ * template-specific body (Side A, coach side, goals — via `children`) + action
+ * items (4th item for SENIOR). Native FormData + server-authoritative zod (no
+ * client resolver), `setError` re-hydration. Used for create + edit.
  */
 export type FeedbackFormShellProps = {
   formType: FormType;
@@ -170,6 +234,11 @@ export type FeedbackTemplateProps = Omit<
   FeedbackFormShellProps,
   "formType" | "children"
 >;
+
+// Templates that include the kata self-rating block (CADET / JUNIOR / SENIOR).
+export type KataTemplateProps = FeedbackTemplateProps & {
+  repertoire: KataRepertoireItem[];
+};
 
 export function FeedbackFormShell({
   formType,
@@ -204,10 +273,13 @@ export function FeedbackFormShell({
       <input type="hidden" name="athleteId" value={athleteId} />
       {feedbackId ? <input type="hidden" name="id" value={feedbackId} /> : null}
 
-      <HeaderFields register={register} errors={errors} />
+      <HeaderFields
+        register={register}
+        errors={errors}
+        maxMeeting={maxMeetingNumber(formType)}
+      />
       {children(register, errors)}
-      <CoachSection register={register} />
-      <ActionItems register={register} />
+      <ActionItems register={register} formType={formType} />
 
       {state.message ? (
         <p className="text-sm text-destructive">{state.message}</p>

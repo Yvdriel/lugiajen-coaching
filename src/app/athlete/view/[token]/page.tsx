@@ -15,7 +15,10 @@ import { buildAthleteStats } from "@/lib/athlete-stats";
 import { calculateAge, getCategories } from "@/lib/categories";
 import { getAthleteByViewToken } from "@/lib/queries/athletes";
 import { getAthleteCompetitions } from "@/lib/queries/competitions";
-import { getFeedbackForms } from "@/lib/queries/feedback";
+import {
+  getFeedbackForms,
+  getFeedbackKataRatingsByAthlete,
+} from "@/lib/queries/feedback";
 import { getAthleteKata, getKataLibrary } from "@/lib/queries/kata";
 import {
   getLatestCardsPerKata,
@@ -68,15 +71,23 @@ export default async function PortalPage({
 
   const activeTab: Tab = TABS.includes(tab as Tab) ? (tab as Tab) : "overview";
 
-  const [repertoire, latestCards, seriesByKata, feedback, competitions, kataLib] =
-    await Promise.all([
-      getAthleteKata(a.id),
-      getLatestCardsPerKata(a.id),
-      getScoringSeriesByKata(a.id),
-      getFeedbackForms(a.id),
-      getAthleteCompetitions(a.id),
-      getKataLibrary(),
-    ]);
+  const [
+    repertoire,
+    latestCards,
+    seriesByKata,
+    feedback,
+    competitions,
+    kataLib,
+    feedbackKataRatings,
+  ] = await Promise.all([
+    getAthleteKata(a.id),
+    getLatestCardsPerKata(a.id),
+    getScoringSeriesByKata(a.id),
+    getFeedbackForms(a.id),
+    getAthleteCompetitions(a.id),
+    getKataLibrary(),
+    getFeedbackKataRatingsByAthlete(a.id),
+  ]);
   const kataNames = new Map(kataLib.map((k) => [k.id, k.name]));
 
   const stats = buildAthleteStats({
@@ -214,7 +225,10 @@ export default async function PortalPage({
                       </span>
                     </summary>
                     <div className="border-t border-border p-4">
-                      <FeedbackDetail form={form} />
+                      <FeedbackDetail
+                        form={form}
+                        kataRatings={feedbackKataRatings.get(form.id) ?? []}
+                      />
                     </div>
                   </details>
                 </li>

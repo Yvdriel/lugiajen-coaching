@@ -1,13 +1,22 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FeedbackDetail } from "@/components/display/feedback-detail";
+import { FeedbackFormCadet } from "@/components/forms/feedback-form-cadet";
+import { FeedbackFormJunior } from "@/components/forms/feedback-form-junior";
+import { FeedbackFormSenior } from "@/components/forms/feedback-form-senior";
 import { FeedbackFormU12 } from "@/components/forms/feedback-form-u12";
-import { FeedbackFormU16 } from "@/components/forms/feedback-form-u16";
 import { buttonVariants } from "@/components/ui/button";
 import { updateFeedback } from "@/features/feedback/actions";
-import { feedbackToValues } from "@/features/feedback/values";
+import {
+  feedbackToValues,
+  kataRatingValues,
+} from "@/features/feedback/values";
 import { getAthleteById } from "@/lib/queries/athletes";
-import { getFeedbackById } from "@/lib/queries/feedback";
+import {
+  getFeedbackById,
+  getFeedbackKataRatings,
+} from "@/lib/queries/feedback";
+import { getAthleteKata } from "@/lib/queries/kata";
 import { getMessages } from "@/i18n/server";
 
 export default async function FeedbackDetailPage({
@@ -20,17 +29,23 @@ export default async function FeedbackDetailPage({
   const nl = await getMessages();
   const { id, feedbackId } = await params;
   const { edit } = await searchParams;
-  const [a, form] = await Promise.all([
+  const [a, form, kata, kataRatings] = await Promise.all([
     getAthleteById(id),
     getFeedbackById(feedbackId),
+    getAthleteKata(id),
+    getFeedbackKataRatings(feedbackId),
   ]);
   if (!a || !form || form.athleteId !== a.id) notFound();
 
   const editing = edit === "1";
+  const repertoire = kata.map((k) => ({ kataId: k.kataId, kataName: k.kataName }));
   const props = {
     athleteId: a.id,
     feedbackId: form.id,
-    defaultValues: feedbackToValues(form),
+    defaultValues: {
+      ...feedbackToValues(form),
+      ...kataRatingValues(repertoire, kataRatings),
+    },
     action: updateFeedback,
     submitLabel: nl.common.save,
   };
@@ -72,11 +87,15 @@ export default async function FeedbackDetailPage({
       {editing ? (
         form.formType === "U12" ? (
           <FeedbackFormU12 {...props} />
+        ) : form.formType === "CADET" ? (
+          <FeedbackFormCadet {...props} repertoire={repertoire} />
+        ) : form.formType === "JUNIOR" ? (
+          <FeedbackFormJunior {...props} repertoire={repertoire} />
         ) : (
-          <FeedbackFormU16 {...props} />
+          <FeedbackFormSenior {...props} repertoire={repertoire} />
         )
       ) : (
-        <FeedbackDetail form={form} />
+        <FeedbackDetail form={form} kataRatings={kataRatings} />
       )}
     </div>
   );

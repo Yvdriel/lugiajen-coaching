@@ -226,6 +226,10 @@ export const nl = {
     goals: "Doelen",
     actionItems: "Actiepunten",
     save: "Gesprek opslaan",
+    kataSelfRating: "Mijn kata — eerlijke zelfscore",
+    kataSelfRatingHint: "Geef per kata een eerlijke score (1-10) en korte notitie.",
+    kataSelfScore: "Score (1-10)",
+    kataSelfNotes: "Notitie",
     fields: {
       athleteProudOf: "Waar ben je trots op?",
       athleteHardestThing: "Wat vond je het moeilijkst?",
@@ -233,21 +237,46 @@ export const nl = {
       athleteFunScore: "Hoe leuk vind je karate? (1-5)",
       athleteMakeMoreFun: "Wat zou karate nog leuker maken?",
       athleteQuestion: "Heb je een vraag voor de coach?",
-      selfRatingTraining: "Training (1-5)",
+      selfRatingTraining: "Hoe gaat mijn training? (1-5)",
+      selfRatingTrainingQuality: "Kwaliteit van mijn trainingen (1-5)",
       selfRatingMotivation: "Motivatie (1-5)",
-      selfRatingBody: "Lichaam / fitheid (1-5)",
-      selfRatingCompetition: "Wedstrijd (1-5)",
-      athleteNeedsWork: "Wat heeft nog werk nodig?",
-      coachStrength: "Sterkste punt",
+      selfRatingBody: "Hoe voelt mijn lichaam? (1-5)",
+      selfRatingRecovery: "Herstel — slaap, energie, rust (1-5)",
+      selfRatingCompetition: "Wedstrijdklaar (1-5)",
+      selfRatingMental: "Hoe voel ik me mentaal? (1-5)",
+      athleteNeedsWork: "Waar ik denk dat ik aan moet werken",
+      trainingQualityReflection:
+        "Hoe heb ik de afgelopen periode getraind? Waar ben ik tevreden over en wat had beter gekund?",
+      trainingPeriodReflection:
+        "Hoe heb ik de afgelopen periode ervaren? Beschrijf hoe de trainingen voelden, wat goed ging en waar je mee worstelde.",
+      physicalStateNotes:
+        "Fysieke klachten, pijn, blessures of zorgen? Hoe is je energieniveau?",
+      competitionReflection:
+        "Wat heb ik geleerd van mijn laatste wedstrijd(en)? Wat ging goed en wat neem ik mee naar de training?",
+      mentalPreparation:
+        "Hoe bereid ik me mentaal voor op trainingen en wedstrijden? Wat werkt en wat nog niet?",
+      mentalPreparationReview:
+        "Hoe werkt mijn mentale voorbereiding? Wat doe ik voor/tijdens/na de wedstrijd en wat wil ik veranderen?",
+      athleteDiscussionPoints:
+        "Onderwerpen die ik wil bespreken met mijn coach",
+      coachStrength: "Sterke punten",
       coachDevelopmentArea: "Ontwikkelpunt",
+      trainingStructureFeedback:
+        "Feedback op trainingsopbouw, belasting en kwaliteit",
+      previousGoalsReview:
+        "Evaluatie vorige doelen — wat is bereikt, wat niet, en waarom?",
       goalMain: "Hoofddoel",
       goalMainProcess: "Procesdoel",
       goalPerformance: "Prestatiedoel",
-      goalOutcome: "Uitkomstdoel",
+      goalOutcome: "Resultaatdoel",
       kataFocus: "Kata-focus",
+      periodizationNotes:
+        "Trainingsplanning — waar zitten we en wat komt eraan?",
+      physicalPlan: "Afspraken fysiek (S&C, mobiliteit, herstel, preventie)",
       action1: "Actie 1",
       action2: "Actie 2",
       action3: "Actie 3",
+      action4: "Actie 4",
     },
   },
   competition: {

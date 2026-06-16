@@ -3,6 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { useMessages } from "@/i18n/client";
 import {
+  CoachSection,
   Field,
   type FeedbackTemplateProps,
   FeedbackFormShell,
@@ -51,6 +52,8 @@ export function FeedbackFormU12(props: FeedbackTemplateProps) {
               register={register}
             />
           </Section>
+
+          <CoachSection register={register} />
 
           <Section title={f.goals}>
             <Field label={f.fields.goalMain}>
