@@ -310,6 +310,10 @@ export const nl = {
       back: "Terug",
       finish: "Klaar",
       selectAthletes: "Selecteer atleten",
+      selectCategories: "Selecteer categorieën",
+      pickAtLeastOneCategory: "Kies minstens één categorie.",
+      autoCategory: "Automatisch o.b.v. leeftijd",
+      allCategoriesAdded: "Alle categorieën al toegevoegd.",
       noActiveAthletes: "Geen actieve atleten beschikbaar.",
       noRepertoire: "Geen wedstrijdkata in repertoire.",
       steps: {

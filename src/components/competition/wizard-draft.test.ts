@@ -15,15 +15,15 @@ const sample: WizardDraft = {
     location: "Dojo",
     notes: "",
   },
-  category: "U14 Kata",
-  selected: ["a-1", "a-2"],
+  picks: { "a-1": ["U14"], "a-2": ["U21", "Senior"] },
   entries: [
     {
       id: "e-1",
       athleteId: "a-1",
       athleteName: "Sample Atleet",
+      category: "U14",
       repertoire: [{ kataId: "k-1", kataName: "Heian Yondan" }],
-      draft: { category: "U14 Kata", feedbackPerformance: "Goed" },
+      draft: { category: "U14", feedbackPerformance: "Goed" },
     },
   ],
 };
@@ -44,10 +44,30 @@ describe("wizard-draft", () => {
   it("rejects a draft with the wrong shape", () => {
     expect(parseDraft(JSON.stringify({ step: "1" }))).toBeNull(); // step not a number
     expect(
-      parseDraft(JSON.stringify({ ...sample, selected: [1, 2] })),
-    ).toBeNull(); // selected not string[]
+      parseDraft(JSON.stringify({ ...sample, picks: { "a-1": [1] } })),
+    ).toBeNull(); // picks values not string[]
     expect(
-      parseDraft(JSON.stringify({ ...sample, entries: [{ id: "e-1" }] })),
-    ).toBeNull(); // entry missing athleteId
+      parseDraft(JSON.stringify({ ...sample, picks: ["a-1"] })),
+    ).toBeNull(); // picks not a record
+    expect(
+      parseDraft(
+        JSON.stringify({
+          ...sample,
+          entries: [{ id: "e-1", athleteId: "a-1" }],
+        }),
+      ),
+    ).toBeNull(); // entry missing category
+  });
+
+  it("rejects an old-format draft (category/selected, no picks)", () => {
+    const legacy = {
+      step: 1,
+      competitionId: "c-1",
+      comp: sample.comp,
+      category: "U14 Kata",
+      selected: ["a-1"],
+      entries: [],
+    };
+    expect(parseDraft(JSON.stringify(legacy))).toBeNull();
   });
 });

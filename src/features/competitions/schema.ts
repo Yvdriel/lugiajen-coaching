@@ -49,6 +49,9 @@ export const ENTRY_ROUNDS = [
 ] as const;
 
 export const competitionEntrySchema = z.object({
+  // Lenient on purpose: new entries are constrained to the age-eligible enum in the
+  // add action, but legacy free-text categories must stay editable here. See
+  // `CATEGORY_VALUES` / `isCategory` in lib/categories for the strict enum.
   category: z.string().trim().min(1, "Categorie is verplicht."),
   resultPlacement: optPlacement,
   resultRoundReached: optText,

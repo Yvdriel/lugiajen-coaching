@@ -8,6 +8,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -188,40 +189,53 @@ export const competitions = pgTable("competitions", {
 });
 
 // ── competition_entries ───────────────────────────────────────────────────────
-export const competitionEntries = pgTable("competition_entries", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  competitionId: uuid("competition_id")
-    .notNull()
-    .references(() => competitions.id, { onDelete: "cascade" }),
-  athleteId: uuid("athlete_id")
-    .notNull()
-    .references(() => athletes.id, { onDelete: "cascade" }),
-  category: text("category").notNull(),
-  resultPlacement: integer("result_placement"),
-  resultRoundReached: text("result_round_reached"),
-  // kata performed per round (from the athlete's repertoire) + per-round result
-  kataRound1: uuid("kata_round_1").references(() => kata.id),
-  kataRound1Result: roundResultEnum("kata_round_1_result"),
-  kataRound2: uuid("kata_round_2").references(() => kata.id),
-  kataRound2Result: roundResultEnum("kata_round_2_result"),
-  kataRound3: uuid("kata_round_3").references(() => kata.id),
-  kataRound3Result: roundResultEnum("kata_round_3_result"),
-  kataRound4: uuid("kata_round_4").references(() => kata.id),
-  kataRound4Result: roundResultEnum("kata_round_4_result"),
-  kataFinal: uuid("kata_final").references(() => kata.id),
-  kataFinalResult: roundResultEnum("kata_final_result"),
-  // entry feedback
-  feedbackBefore: text("feedback_before"),
-  feedbackPerformance: text("feedback_performance"),
-  feedbackImprovement: text("feedback_improvement"),
-  feedbackLesson: text("feedback_lesson"),
-  coachNotes: text("coach_notes"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at")
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
+// One row per (competition, athlete, category): an athlete can compete in two
+// categories at once (e.g. U21 + Senior), each with its own kata-per-round +
+// results + feedback. The unique index enforces that triple.
+export const competitionEntries = pgTable(
+  "competition_entries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    competitionId: uuid("competition_id")
+      .notNull()
+      .references(() => competitions.id, { onDelete: "cascade" }),
+    athleteId: uuid("athlete_id")
+      .notNull()
+      .references(() => athletes.id, { onDelete: "cascade" }),
+    category: text("category").notNull(),
+    resultPlacement: integer("result_placement"),
+    resultRoundReached: text("result_round_reached"),
+    // kata performed per round (from the athlete's repertoire) + per-round result
+    kataRound1: uuid("kata_round_1").references(() => kata.id),
+    kataRound1Result: roundResultEnum("kata_round_1_result"),
+    kataRound2: uuid("kata_round_2").references(() => kata.id),
+    kataRound2Result: roundResultEnum("kata_round_2_result"),
+    kataRound3: uuid("kata_round_3").references(() => kata.id),
+    kataRound3Result: roundResultEnum("kata_round_3_result"),
+    kataRound4: uuid("kata_round_4").references(() => kata.id),
+    kataRound4Result: roundResultEnum("kata_round_4_result"),
+    kataFinal: uuid("kata_final").references(() => kata.id),
+    kataFinalResult: roundResultEnum("kata_final_result"),
+    // entry feedback
+    feedbackBefore: text("feedback_before"),
+    feedbackPerformance: text("feedback_performance"),
+    feedbackImprovement: text("feedback_improvement"),
+    feedbackLesson: text("feedback_lesson"),
+    coachNotes: text("coach_notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("competition_entries_comp_athlete_category_idx").on(
+      t.competitionId,
+      t.athleteId,
+      t.category,
+    ),
+  ],
+);
 
 // ── athlete_notes (append-only timestamped coach log; Notities tab) ────────────
 export const athleteNotes = pgTable("athlete_notes", {

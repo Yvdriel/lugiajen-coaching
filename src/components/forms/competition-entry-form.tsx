@@ -15,6 +15,7 @@ import {
 import { ENTRY_ROUNDS } from "@/features/competitions/schema";
 import type { EntryValues } from "@/features/competitions/values";
 import { useMessages } from "@/i18n/client";
+import type { Category } from "@/lib/categories";
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -28,6 +29,7 @@ export type CompetitionEntryFormProps = {
   athleteName: string;
   defaultValues: EntryValues;
   kataOptions: KataOption[];
+  categories: Category[];
 };
 
 export function CompetitionEntryForm({
@@ -37,6 +39,7 @@ export function CompetitionEntryForm({
   athleteName,
   defaultValues,
   kataOptions,
+  categories,
 }: CompetitionEntryFormProps) {
   const nl = useMessages();
   const router = useRouter();
@@ -64,6 +67,11 @@ export function CompetitionEntryForm({
   }, [state.ok, router, competitionId]);
 
   const c = nl.competition;
+  const legacyCategory =
+    defaultValues.category &&
+    !categories.includes(defaultValues.category as Category)
+      ? defaultValues.category
+      : null;
 
   return (
     <form action={formAction} className="flex flex-col gap-5" noValidate>
@@ -75,7 +83,17 @@ export function CompetitionEntryForm({
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Field label={c.entry.category} error={errors.category?.message}>
-          <Input {...register("category")} />
+          <select className={selectClass} {...register("category")}>
+            {/* preserve a legacy free-text category that's not in the age-eligible set */}
+            {legacyCategory ? (
+              <option value={legacyCategory}>{legacyCategory}</option>
+            ) : null}
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label={c.entry.placement} error={errors.resultPlacement?.message}>
           <Input type="number" min={1} {...register("resultPlacement")} />

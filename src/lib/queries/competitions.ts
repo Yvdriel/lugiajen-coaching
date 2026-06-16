@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, notInArray, sql } from "drizzle-orm";
+import { asc, desc, eq, sql } from "drizzle-orm";
 import {
   athleteKata,
   athletes,
@@ -8,6 +8,7 @@ import {
 } from "@/db/schema";
 import { db } from "@/lib/db";
 import type { CompetitionType } from "@/features/competitions/schema";
+import { type Category, getCategories } from "@/lib/categories";
 
 // Shared competition reads (convention 4): list + detail + per-athlete history, plus
 // the active-athletes-with-repertoire payload that feeds the entry wizard.
@@ -52,9 +53,10 @@ export type CompetitionEntryRow = {
   entry: CompetitionEntry;
   athleteFirstName: string;
   athleteLastName: string;
+  athleteDateOfBirth: string;
 };
 
-/** Entries for one competition, with the athlete's name. */
+/** Entries for one competition, with the athlete's name + DOB (for the edit-form category select). */
 export function getCompetitionEntries(
   competitionId: string,
 ): Promise<CompetitionEntryRow[]> {
@@ -63,6 +65,7 @@ export function getCompetitionEntries(
       entry: competitionEntries,
       athleteFirstName: athletes.firstName,
       athleteLastName: athletes.lastName,
+      athleteDateOfBirth: athletes.dateOfBirth,
     })
     .from(competitionEntries)
     .innerJoin(athletes, eq(competitionEntries.athleteId, athletes.id))
@@ -109,6 +112,7 @@ export type AthleteWithRepertoire = {
   id: string;
   firstName: string;
   lastName: string;
+  categories: Category[];
   repertoire: { kataId: string; kataName: string; roundOrder: number | null }[];
 };
 
@@ -126,6 +130,7 @@ export async function getActiveAthletesWithRepertoire(): Promise<
         id: athletes.id,
         firstName: athletes.firstName,
         lastName: athletes.lastName,
+        dateOfBirth: athletes.dateOfBirth,
       })
       .from(athletes)
       .where(eq(athletes.isActive, true))
@@ -151,6 +156,7 @@ export async function getActiveAthletesWithRepertoire(): Promise<
       id: a.id,
       firstName: a.firstName,
       lastName: a.lastName,
+      categories: getCategories(new Date(a.dateOfBirth)),
       repertoire: source.map((r) => ({
         kataId: r.kataId,
         kataName: r.kataName,
@@ -160,21 +166,55 @@ export async function getActiveAthletesWithRepertoire(): Promise<
   });
 }
 
-/** Active athletes not yet entered in this competition (the detail add picker). */
-export function getAthletesNotInCompetition(
+export type AthleteForAdd = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  categories: Category[];
+  enteredCategories: string[];
+};
+
+/**
+ * Active athletes for the detail "add athlete" picker, each with their eligible
+ * age categories and the categories already entered in THIS competition — so the
+ * UI can disable already-used (athlete, category) combos. Athletes are NOT filtered
+ * out when partially entered: someone already in U21 must still be addable for Senior.
+ */
+export async function getAthletesNotInCompetition(
   competitionId: string,
-): Promise<{ id: string; firstName: string; lastName: string }[]> {
-  const entered = db
-    .select({ athleteId: competitionEntries.athleteId })
-    .from(competitionEntries)
-    .where(eq(competitionEntries.competitionId, competitionId));
-  return db
-    .select({
-      id: athletes.id,
-      firstName: athletes.firstName,
-      lastName: athletes.lastName,
-    })
-    .from(athletes)
-    .where(and(eq(athletes.isActive, true), notInArray(athletes.id, entered)))
-    .orderBy(asc(athletes.lastName), asc(athletes.firstName));
+): Promise<AthleteForAdd[]> {
+  const [ath, entered] = await Promise.all([
+    db
+      .select({
+        id: athletes.id,
+        firstName: athletes.firstName,
+        lastName: athletes.lastName,
+        dateOfBirth: athletes.dateOfBirth,
+      })
+      .from(athletes)
+      .where(eq(athletes.isActive, true))
+      .orderBy(asc(athletes.lastName), asc(athletes.firstName)),
+    db
+      .select({
+        athleteId: competitionEntries.athleteId,
+        category: competitionEntries.category,
+      })
+      .from(competitionEntries)
+      .where(eq(competitionEntries.competitionId, competitionId)),
+  ]);
+
+  const enteredByAthlete = new Map<string, string[]>();
+  for (const e of entered) {
+    const list = enteredByAthlete.get(e.athleteId) ?? [];
+    list.push(e.category);
+    enteredByAthlete.set(e.athleteId, list);
+  }
+
+  return ath.map((a) => ({
+    id: a.id,
+    firstName: a.firstName,
+    lastName: a.lastName,
+    categories: getCategories(new Date(a.dateOfBirth)),
+    enteredCategories: enteredByAthlete.get(a.id) ?? [],
+  }));
 }

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "competition_entries_comp_athlete_category_idx" ON "competition_entries" USING btree ("competition_id","athlete_id","category");

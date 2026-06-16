@@ -1,11 +1,12 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { competitionEntries, competitions } from "@/db/schema";
+import { athletes, competitionEntries, competitions } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { getCategories, isCategory } from "@/lib/categories";
 import { db } from "@/lib/db";
 import {
   type CompetitionEntryParsed,
@@ -27,7 +28,7 @@ export type CompetitionFormState = {
 
 export type EntryFormState = {
   ok: boolean;
-  entries?: { id: string; athleteId: string }[];
+  entries?: { id: string; athleteId: string; category: string }[];
   fieldErrors?: Record<string, string>;
   message?: string;
 };
@@ -146,34 +147,68 @@ export async function addCompetitionAthletes(
 ): Promise<EntryFormState> {
   await requireSession();
   const competitionId = String(formData.get("competitionId") ?? "");
-  const category = String(formData.get("category") ?? "").trim();
-  const athleteIds = formData.getAll("athleteId").map(String).filter(Boolean);
-
   if (!competitionId) return { ok: false, message: "Onbekende wedstrijd." };
-  if (athleteIds.length === 0) {
+
+  // Each `entry` is "<athleteId>:<category>" — UUIDs and category codes contain no
+  // ":", so split on the first one. Builds the requested (athlete, category) pairs.
+  const pairs = formData
+    .getAll("entry")
+    .map(String)
+    .map((raw) => {
+      const i = raw.indexOf(":");
+      return i < 0
+        ? null
+        : { athleteId: raw.slice(0, i), category: raw.slice(i + 1) };
+    })
+    .filter((p): p is { athleteId: string; category: string } =>
+      Boolean(p?.athleteId && p?.category),
+    );
+
+  if (pairs.length === 0) {
     return { ok: false, fieldErrors: { athleteId: "Kies minstens één atleet." } };
   }
-  if (!category) {
-    return { ok: false, fieldErrors: { category: "Categorie is verplicht." } };
+
+  // Server-authoritative validation (convention 8): recompute each athlete's eligible
+  // categories from their DOB — never trust the client's category.
+  const athleteIds = [...new Set(pairs.map((p) => p.athleteId))];
+  const dobRows = await db
+    .select({ id: athletes.id, dateOfBirth: athletes.dateOfBirth })
+    .from(athletes)
+    .where(inArray(athletes.id, athleteIds));
+  const eligible = new Map(
+    dobRows.map((r) => [
+      r.id,
+      new Set<string>(getCategories(new Date(r.dateOfBirth))),
+    ]),
+  );
+  for (const p of pairs) {
+    if (!isCategory(p.category) || !eligible.get(p.athleteId)?.has(p.category)) {
+      return { ok: false, message: "Ongeldige categorie voor een atleet." };
+    }
   }
 
-  // Idempotent: skip athletes already entered in this competition.
+  // Dedup against existing (athlete, category) rows — the unique index is the
+  // DB-level safety net; this keeps the response clean and avoids a conflict throw.
   const existing = await db
-    .select({ athleteId: competitionEntries.athleteId })
+    .select({
+      athleteId: competitionEntries.athleteId,
+      category: competitionEntries.category,
+    })
     .from(competitionEntries)
     .where(eq(competitionEntries.competitionId, competitionId));
-  const have = new Set(existing.map((e) => e.athleteId));
-  const toAdd = athleteIds.filter((a) => !have.has(a));
+  const have = new Set(existing.map((e) => `${e.athleteId}:${e.category}`));
+  const toAdd = pairs.filter((p) => !have.has(`${p.athleteId}:${p.category}`));
   if (toAdd.length === 0) return { ok: true, entries: [] };
 
   // Atomic multi-row write via db.batch (convention 1) — all-or-nothing.
-  const stmts = toAdd.map((athleteId) =>
+  const stmts = toAdd.map((p) =>
     db
       .insert(competitionEntries)
-      .values({ competitionId, athleteId, category })
+      .values({ competitionId, athleteId: p.athleteId, category: p.category })
       .returning({
         id: competitionEntries.id,
         athleteId: competitionEntries.athleteId,
+        category: competitionEntries.category,
       }),
   );
   const rows = await db.batch(

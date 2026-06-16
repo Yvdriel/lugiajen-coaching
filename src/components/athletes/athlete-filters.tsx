@@ -3,16 +3,9 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { useMessages } from "@/i18n/client";
-import type { Category } from "@/lib/categories";
+import { CATEGORY_VALUES } from "@/lib/categories";
 
-const CATEGORIES: Category[] = [
-  "U12",
-  "U14",
-  "Cadets",
-  "Juniors",
-  "U21",
-  "Senior",
-];
+const CATEGORIES = CATEGORY_VALUES;
 
 const selectClass =
   "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";

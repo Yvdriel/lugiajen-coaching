@@ -15,6 +15,13 @@
       "when": 1781524886104,
       "tag": "0001_red_dreadnoughts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781607352678,
+      "tag": "0002_faulty_wallow",
+      "breakpoints": true
     }
   ]
 }

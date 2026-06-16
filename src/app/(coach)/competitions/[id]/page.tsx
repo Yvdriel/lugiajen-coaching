@@ -16,6 +16,7 @@ import {
   getCompetitionEntries,
 } from "@/lib/queries/competitions";
 import { getAthleteKata, getKataLibrary } from "@/lib/queries/kata";
+import { getCategories } from "@/lib/categories";
 import { getLocale, getMessages } from "@/i18n/server";
 import { formatDate } from "@/i18n/format";
 
@@ -118,6 +119,7 @@ export default async function CompetitionDetailPage({
           athleteName={`${editEntryRow.athleteFirstName} ${editEntryRow.athleteLastName}`}
           defaultValues={entryToValues(editEntryRow.entry)}
           kataOptions={kataOptions}
+          categories={getCategories(new Date(editEntryRow.athleteDateOfBirth))}
         />
       ) : (
         <div className="flex flex-col gap-6">

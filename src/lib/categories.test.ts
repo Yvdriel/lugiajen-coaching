@@ -8,16 +8,18 @@ import {
 
 const sorted = (c: Category[]) => [...c].sort();
 
-describe("getCategoriesForAge — boundary ages (own + one above)", () => {
+describe("getCategoriesForAge — boundary ages (explicit ranges)", () => {
   const cases: Array<[number, Category[]]> = [
-    [11, ["U12", "U14"]],
+    [9, ["U10"]],
+    [10, ["U12"]],
+    [11, ["U12"]],
     [12, ["U14"]],
-    [13, ["U14", "Cadets"]],
+    [13, ["U14"]],
     [14, ["Cadets"]],
-    [15, ["Cadets", "Juniors"]],
-    [16, ["Juniors"]],
-    [17, ["Juniors", "U21"]],
-    [18, ["U21"]],
+    [15, ["Cadets"]],
+    [16, ["Juniors", "Senior"]],
+    [17, ["Juniors", "Senior"]],
+    [18, ["U21", "Senior"]],
     [20, ["U21", "Senior"]],
     [21, ["Senior"]],
   ];
@@ -26,8 +28,8 @@ describe("getCategoriesForAge — boundary ages (own + one above)", () => {
     expect(sorted(getCategoriesForAge(age))).toEqual(sorted(expected));
   });
 
-  test("young child is U12 only", () => {
-    expect(getCategoriesForAge(9)).toEqual(["U12"]);
+  test("young child is U10 only", () => {
+    expect(getCategoriesForAge(5)).toEqual(["U10"]);
   });
 
   test("adult is Senior only", () => {
@@ -61,9 +63,13 @@ describe("calculateAge", () => {
 describe("getCategories (dob → categories)", () => {
   const ref = new Date(2026, 5, 15);
 
-  test("13-year-old: U14 + one above Cadets", () => {
-    expect(sorted(getCategories(new Date(2013, 0, 1), ref))).toEqual(
-      sorted(["U14", "Cadets"]),
+  test("13-year-old is U14 only", () => {
+    expect(getCategories(new Date(2013, 0, 1), ref)).toEqual(["U14"]);
+  });
+
+  test("17-year-old is Juniors + Senior", () => {
+    expect(sorted(getCategories(new Date(2009, 0, 1), ref))).toEqual(
+      sorted(["Juniors", "Senior"]),
     );
   });
 });

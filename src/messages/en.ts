@@ -312,6 +312,10 @@ export const en: Messages = {
       back: "Back",
       finish: "Done",
       selectAthletes: "Select athletes",
+      selectCategories: "Select categories",
+      pickAtLeastOneCategory: "Choose at least one category.",
+      autoCategory: "Auto-selected by age",
+      allCategoriesAdded: "All categories already added.",
       noActiveAthletes: "No active athletes available.",
       noRepertoire: "No competition kata in repertoire.",
       steps: {

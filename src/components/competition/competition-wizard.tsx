@@ -17,6 +17,7 @@ import {
   ENTRY_ROUNDS,
 } from "@/features/competitions/schema";
 import { useMessages } from "@/i18n/client";
+import type { Category } from "@/lib/categories";
 import type { AthleteWithRepertoire } from "@/lib/queries/competitions";
 import {
   DRAFT_KEY,
@@ -67,9 +68,9 @@ export function CompetitionWizard({
     notes: "",
   });
 
-  // Step 1 — athlete selection.
-  const [category, setCategory] = useState("");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Step 1 — per-athlete category selection. Key present (even with []) = athlete
+  // checked; the array holds their chosen age categories. One entry row per (athlete, category).
+  const [picks, setPicks] = useState<Record<string, Category[]>>({});
 
   // Steps 2–4 — per-entry drafts.
   const [entries, setEntries] = useState<WizardEntry[]>([]);
@@ -92,8 +93,7 @@ export function CompetitionWizard({
     setStep(draft.step);
     setCompetitionId(draft.competitionId);
     setComp(draft.comp as typeof comp);
-    setCategory(draft.category);
-    setSelected(new Set(draft.selected));
+    setPicks(draft.picks as Record<string, Category[]>);
     setEntries(draft.entries);
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
@@ -110,15 +110,14 @@ export function CompetitionWizard({
           step,
           competitionId,
           comp,
-          category,
-          selected: [...selected],
+          picks,
           entries,
         }),
       );
     } catch {
       // storage unavailable (private mode / quota) — non-fatal.
     }
-  }, [step, competitionId, comp, category, selected, entries]);
+  }, [step, competitionId, comp, picks, entries]);
 
   function clearDraft() {
     try {
@@ -177,12 +176,20 @@ export function CompetitionWizard({
   }
 
   async function submitAthletes() {
+    // Build the (athlete, category) pairs from picks. Block if a checked athlete has
+    // no category, or if nothing is selected at all.
+    const chosen = Object.entries(picks);
+    if (chosen.length === 0 || chosen.some(([, cats]) => cats.length === 0)) {
+      setError(w.pickAtLeastOneCategory);
+      return;
+    }
+
     setBusy(true);
     setError(null);
     const fd = new FormData();
     if (competitionId) fd.set("competitionId", competitionId);
-    fd.set("category", category);
-    for (const id of selected) fd.append("athleteId", id);
+    for (const [athleteId, cats] of chosen)
+      for (const cat of cats) fd.append("entry", `${athleteId}:${cat}`);
     try {
       const res = await addCompetitionAthletes({ ok: false }, fd);
       if (!res.ok || !res.entries) {
@@ -200,9 +207,10 @@ export function CompetitionWizard({
           return {
             id: e.id,
             athleteId: e.athleteId,
+            category: e.category as Category,
             athleteName: a ? `${a.firstName} ${a.lastName}` : "",
             repertoire: a?.repertoire ?? [],
-            draft: blankDraft(category),
+            draft: blankDraft(e.category),
           };
         }),
       );
@@ -241,12 +249,26 @@ export function CompetitionWizard({
     }
   }
 
-  function toggle(id: string) {
-    setSelected((prev) => {
-      const nextSet = new Set(prev);
-      if (nextSet.has(id)) nextSet.delete(id);
-      else nextSet.add(id);
-      return nextSet;
+  // Check/uncheck an athlete. On check, auto-pick when there's only one eligible
+  // category; otherwise start empty and let the coach pick categories below.
+  function toggleAthlete(a: AthleteWithRepertoire) {
+    setPicks((prev) => {
+      const next = { ...prev };
+      if (Object.hasOwn(next, a.id)) delete next[a.id];
+      else next[a.id] = a.categories.length === 1 ? [a.categories[0]] : [];
+      return next;
+    });
+  }
+
+  function toggleCategory(athleteId: string, cat: Category) {
+    setPicks((prev) => {
+      const cur = prev[athleteId] ?? [];
+      return {
+        ...prev,
+        [athleteId]: cur.includes(cat)
+          ? cur.filter((c) => c !== cat)
+          : [...cur, cat],
+      };
     });
   }
 
@@ -329,30 +351,56 @@ export function CompetitionWizard({
 
       {step === 1 ? (
         <div className="flex flex-col gap-4">
-          <FieldLabel label={c.entry.category}>
-            <Input
-              value={category}
-              placeholder="U14 Kata Individueel"
-              onChange={(e) => setCategory(e.target.value)}
-            />
-          </FieldLabel>
           {athletes.length === 0 ? (
             <p className="text-sm text-muted-foreground">{w.noActiveAthletes}</p>
           ) : (
-            <fieldset className="grid gap-1 sm:grid-cols-2">
+            <fieldset className="flex flex-col gap-2">
               <legend className="mb-1 text-sm font-semibold">
                 {w.selectAthletes}
               </legend>
-              {athletes.map((a) => (
-                <label key={a.id} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(a.id)}
-                    onChange={() => toggle(a.id)}
-                  />
-                  {a.firstName} {a.lastName}
-                </label>
-              ))}
+              {athletes.map((a) => {
+                const checked = Object.hasOwn(picks, a.id);
+                const single = a.categories.length === 1;
+                return (
+                  <div
+                    key={a.id}
+                    className="flex flex-col gap-1.5 rounded-lg border border-border p-2.5"
+                  >
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleAthlete(a)}
+                      />
+                      {a.firstName} {a.lastName}
+                    </label>
+                    {checked ? (
+                      single ? (
+                        <span className="ml-6 flex items-center gap-2 text-xs text-muted-foreground">
+                          <CategoryBadge category={a.categories[0]} />
+                          {w.autoCategory}
+                        </span>
+                      ) : (
+                        <div className="ml-6 flex flex-col gap-1">
+                          <span className="text-xs text-muted-foreground">
+                            {w.selectCategories}
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {a.categories.map((cat) => (
+                              <CategoryChip
+                                key={cat}
+                                category={cat}
+                                on={(picks[a.id] ?? []).includes(cat)}
+                                onClick={() => toggleCategory(a.id, cat)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    ) : null}
+                  </div>
+                );
+              })}
             </fieldset>
           )}
         </div>
@@ -361,7 +409,7 @@ export function CompetitionWizard({
       {step === 2 ? (
         <div className="flex flex-col gap-4">
           {entries.map((e) => (
-            <EntryCard key={e.id} title={e.athleteName}>
+            <EntryCard key={e.id} title={e.athleteName} badge={e.category}>
               {e.repertoire.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{w.noRepertoire}</p>
               ) : (
@@ -394,7 +442,7 @@ export function CompetitionWizard({
       {step === 3 ? (
         <div className="flex flex-col gap-4">
           {entries.map((e) => (
-            <EntryCard key={e.id} title={e.athleteName}>
+            <EntryCard key={e.id} title={e.athleteName} badge={e.category}>
               <div className="grid gap-3 sm:grid-cols-2">
                 <FieldLabel label={c.entry.placement}>
                   <Input
@@ -437,7 +485,7 @@ export function CompetitionWizard({
       {step === 4 ? (
         <div className="flex flex-col gap-4">
           {entries.map((e) => (
-            <EntryCard key={e.id} title={e.athleteName}>
+            <EntryCard key={e.id} title={e.athleteName} badge={e.category}>
               <FieldLabel label={c.entry.feedbackBefore}>
                 <Textarea
                   rows={2}
@@ -544,15 +592,53 @@ function FieldLabel({
 
 function EntryCard({
   title,
+  badge,
   children,
 }: {
   title: string;
+  badge?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
-      <p className="font-medium">{title}</p>
+      <div className="flex items-center gap-2">
+        <p className="font-medium">{title}</p>
+        {badge ? <CategoryBadge category={badge} /> : null}
+      </div>
       {children}
     </div>
+  );
+}
+
+function CategoryBadge({ category }: { category: string }) {
+  return (
+    <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium">
+      {category}
+    </span>
+  );
+}
+
+function CategoryChip({
+  category,
+  on,
+  onClick,
+}: {
+  category: string;
+  on: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={onClick}
+      className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+        on
+          ? "border-foreground bg-foreground text-background"
+          : "border-border text-muted-foreground hover:border-foreground/40"
+      }`}
+    >
+      {category}
+    </button>
   );
 }
