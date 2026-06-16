@@ -31,6 +31,14 @@ export const formTypeEnum = pgEnum("form_type", [
   "JUNIOR",
   "SENIOR",
 ]);
+// Feedback gesprek lifecycle. `completed` is the default so existing rows and the
+// fill-in-person path keep counting as finished meetings; the prepared-flow drafts
+// move awaiting_athlete → athlete_submitted → completed.
+export const feedbackStatusEnum = pgEnum("feedback_status", [
+  "awaiting_athlete",
+  "athlete_submitted",
+  "completed",
+]);
 export const competitionTypeEnum = pgEnum("competition_type", [
   "club",
   "regional",
@@ -150,6 +158,14 @@ export const feedbackForms = pgTable("feedback_forms", {
   meetingNumber: integer("meeting_number").notNull(),
   meetingDate: date("meeting_date").notNull(),
   season: text("season").notNull(),
+  // Lifecycle — `completed` by default (fill-in-person path); prepared-flow drafts
+  // start `awaiting_athlete`. prepareToken is the per-form public hash link (null
+  // unless prepared); the three timestamps audit opened/submitted/completed.
+  status: feedbackStatusEnum("status").notNull().default("completed"),
+  prepareToken: text("prepare_token").unique(),
+  athleteOpenedAt: timestamp("athlete_opened_at"),
+  athleteSubmittedAt: timestamp("athlete_submitted_at"),
+  completedAt: timestamp("completed_at"),
   // Side A — athlete self-assessment
   athleteProudOf: text("athlete_proud_of"),
   athleteHardestThing: text("athlete_hardest_thing"),
@@ -198,7 +214,11 @@ export const feedbackForms = pgTable("feedback_forms", {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
-});
+}, (t) => [
+  // Hot path: per-athlete lists filtered to completed gesprekken (stats, portal,
+  // dashboard "days since last feedback").
+  index("feedback_athlete_status_idx").on(t.athleteId, t.status),
+]);
 
 // ── feedback_kata_ratings (athlete kata self-score per feedback gesprek) ───────
 // One row per rated kata. Set is replaced on edit (delete + reinsert).

@@ -1,9 +1,11 @@
 import Link from "next/link";
+import type { Route } from "next";
 import { notFound } from "next/navigation";
 import { FeedbackFormCadet } from "@/components/forms/feedback-form-cadet";
 import { FeedbackFormJunior } from "@/components/forms/feedback-form-junior";
 import { FeedbackFormSenior } from "@/components/forms/feedback-form-senior";
 import { FeedbackFormU12 } from "@/components/forms/feedback-form-u12";
+import { PrepareChoice } from "@/components/forms/prepare-choice";
 import { buttonVariants } from "@/components/ui/button";
 import { createFeedback } from "@/features/feedback/actions";
 import {
@@ -26,11 +28,11 @@ export default async function NewFeedbackPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ type?: string }>;
+  searchParams: Promise<{ type?: string; prepare?: string }>;
 }) {
   const nl = await getMessages();
   const { id } = await params;
-  const { type } = await searchParams;
+  const { type, prepare } = await searchParams;
   const [a, kata] = await Promise.all([
     getAthleteById(id),
     getAthleteKata(id),
@@ -39,6 +41,9 @@ export default async function NewFeedbackPage({
 
   const age = calculateAge(new Date(a.dateOfBirth));
   const formType = isFormType(type) ? type : recommendedFormType(age);
+  // `prepare` absent → show the "let athlete prepare?" choice; `prepare=0` → the
+  // in-person form (today's flow). "Yes" creates a draft via the choice component.
+  const showChoice = prepare !== "0";
   const today = new Date().toISOString().slice(0, 10);
   const repertoire = kata.map((k) => ({ kataId: k.kataId, kataName: k.kataName }));
   const props = {
@@ -68,7 +73,11 @@ export default async function NewFeedbackPage({
           {FORM_TYPES.map((t) => (
             <Link
               key={t}
-              href={`/athletes/${a.id}/feedback/new?type=${t}`}
+              href={
+                (showChoice
+                  ? `/athletes/${a.id}/feedback/new?type=${t}`
+                  : `/athletes/${a.id}/feedback/new?type=${t}&prepare=0`) as Route
+              }
               className={buttonVariants({
                 variant: formType === t ? "default" : "outline",
                 size: "sm",
@@ -80,7 +89,15 @@ export default async function NewFeedbackPage({
         </div>
       </div>
 
-      {formType === "U12" ? (
+      {showChoice ? (
+        <PrepareChoice
+          athleteId={a.id}
+          formType={formType}
+          inPersonHref={
+            `/athletes/${a.id}/feedback/new?type=${formType}&prepare=0` as Route
+          }
+        />
+      ) : formType === "U12" ? (
         <FeedbackFormU12 {...props} />
       ) : formType === "CADET" ? (
         <FeedbackFormCadet {...props} repertoire={repertoire} />

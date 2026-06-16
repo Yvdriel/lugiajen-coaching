@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type ReactNode, useActionState, useEffect } from "react";
+import { type ReactNode, useActionState, useEffect, useState } from "react";
 import { type FieldErrors, type UseFormRegister, useForm } from "react-hook-form";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,20 +51,33 @@ export function Section({
   );
 }
 
+// `readOnly` (NOT `disabled`) when soft-locked: a disabled input is omitted from
+// FormData, which would null the athlete's answer on the coach's save. readOnly still
+// submits. The muted styling makes the lock visible.
+const readOnlyCls = (readOnly?: boolean) =>
+  readOnly ? "bg-muted text-muted-foreground" : "";
+
 export function TextField({
   label,
   name,
   register,
   rows = 2,
+  readOnly,
 }: {
   label: string;
   name: string;
   register: FBRegister;
   rows?: number;
+  readOnly?: boolean;
 }) {
   return (
     <Field label={label}>
-      <Textarea rows={rows} {...register(name)} />
+      <Textarea
+        rows={rows}
+        readOnly={readOnly}
+        className={readOnlyCls(readOnly)}
+        {...register(name)}
+      />
     </Field>
   );
 }
@@ -74,15 +87,24 @@ export function RatingField({
   name,
   register,
   error,
+  readOnly,
 }: {
   label: string;
   name: string;
   register: FBRegister;
   error?: string;
+  readOnly?: boolean;
 }) {
   return (
     <Field label={label} error={error}>
-      <Input type="number" min={1} max={5} className="w-24" {...register(name)} />
+      <Input
+        type="number"
+        min={1}
+        max={5}
+        readOnly={readOnly}
+        className={`w-24 ${readOnlyCls(readOnly)}`}
+        {...register(name)}
+      />
     </Field>
   );
 }
@@ -172,9 +194,11 @@ export type KataRepertoireItem = { kataId: string; kataName: string };
 export function KataSelfRating({
   repertoire,
   register,
+  readOnly,
 }: {
   repertoire: KataRepertoireItem[];
   register: FBRegister;
+  readOnly?: boolean;
 }) {
   const nl = useMessages();
   const f = nl.feedback;
@@ -194,19 +218,178 @@ export function KataSelfRating({
                 type="number"
                 min={1}
                 max={10}
-                className="w-20"
+                readOnly={readOnly}
+                className={`w-20 ${readOnlyCls(readOnly)}`}
                 aria-label={`${k.kataName} — ${f.kataSelfScore}`}
                 {...register(kataScoreField(k.kataId))}
               />
             </div>
             <Textarea
               rows={2}
+              readOnly={readOnly}
+              className={readOnlyCls(readOnly)}
               placeholder={f.kataSelfNotes}
               {...register(kataNotesField(k.kataId))}
             />
           </div>
         ))}
       </div>
+    </Section>
+  );
+}
+
+// ── Side A (athlete self-assessment) — single source of truth ─────────────────
+// Renders only the athlete-fillable fields for a template, plus the kata self-rating
+// block. Reused by the public prepare form (editable) AND the coach meeting form
+// (readOnly soft-lock). Does NOT render its own outer <Section> — the caller wraps it
+// in <Section> or <LockableSection> with the Side A title.
+export function SideAFields({
+  formType,
+  register,
+  errors,
+  repertoire = [],
+  readOnly = false,
+}: {
+  formType: FormType;
+  register: FBRegister;
+  errors: FBErrors;
+  repertoire?: KataRepertoireItem[];
+  readOnly?: boolean;
+}) {
+  const f = useMessages().feedback;
+  const ro = readOnly;
+  return (
+    <>
+      {formType === "U12" ? (
+        <>
+          <TextField label={f.fields.athleteProudOf} name="athleteProudOf" register={register} readOnly={ro} />
+          <TextField label={f.fields.athleteHardestThing} name="athleteHardestThing" register={register} readOnly={ro} />
+          <TextField label={f.fields.athleteShowParents} name="athleteShowParents" register={register} readOnly={ro} />
+          <RatingField label={f.fields.athleteFunScore} name="athleteFunScore" register={register} error={errors.athleteFunScore?.message} readOnly={ro} />
+          <TextField label={f.fields.athleteMakeMoreFun} name="athleteMakeMoreFun" register={register} readOnly={ro} />
+          <TextField label={f.fields.athleteQuestion} name="athleteQuestion" register={register} readOnly={ro} />
+        </>
+      ) : formType === "CADET" ? (
+        <>
+          <TextField label={f.fields.athleteProudOf} name="athleteProudOf" register={register} readOnly={ro} />
+          <TextField label={f.fields.athleteHardestThing} name="athleteHardestThing" register={register} readOnly={ro} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <RatingField label={f.fields.selfRatingTraining} name="selfRatingTraining" register={register} error={errors.selfRatingTraining?.message} readOnly={ro} />
+            <RatingField label={f.fields.selfRatingMotivation} name="selfRatingMotivation" register={register} error={errors.selfRatingMotivation?.message} readOnly={ro} />
+            <RatingField label={f.fields.selfRatingBody} name="selfRatingBody" register={register} error={errors.selfRatingBody?.message} readOnly={ro} />
+            <RatingField label={f.fields.selfRatingCompetition} name="selfRatingCompetition" register={register} error={errors.selfRatingCompetition?.message} readOnly={ro} />
+          </div>
+          <TextField label={f.fields.athleteNeedsWork} name="athleteNeedsWork" register={register} readOnly={ro} />
+          <TextField label={f.fields.athleteQuestion} name="athleteQuestion" register={register} readOnly={ro} />
+        </>
+      ) : formType === "JUNIOR" ? (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <RatingField label={f.fields.selfRatingTraining} name="selfRatingTraining" register={register} error={errors.selfRatingTraining?.message} readOnly={ro} />
+            <RatingField label={f.fields.selfRatingMotivation} name="selfRatingMotivation" register={register} error={errors.selfRatingMotivation?.message} readOnly={ro} />
+            <RatingField label={f.fields.selfRatingBody} name="selfRatingBody" register={register} error={errors.selfRatingBody?.message} readOnly={ro} />
+            <RatingField label={f.fields.selfRatingCompetition} name="selfRatingCompetition" register={register} error={errors.selfRatingCompetition?.message} readOnly={ro} />
+          </div>
+          <TextField label={f.fields.trainingQualityReflection} name="trainingQualityReflection" register={register} rows={3} readOnly={ro} />
+          <TextField label={f.fields.competitionReflection} name="competitionReflection" register={register} rows={3} readOnly={ro} />
+          <TextField label={f.fields.mentalPreparation} name="mentalPreparation" register={register} rows={3} readOnly={ro} />
+          <TextField label={f.fields.athleteQuestion} name="athleteQuestion" register={register} readOnly={ro} />
+        </>
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <RatingField label={f.fields.selfRatingTraining} name="selfRatingTraining" register={register} error={errors.selfRatingTraining?.message} readOnly={ro} />
+            <RatingField label={f.fields.selfRatingTrainingQuality} name="selfRatingTrainingQuality" register={register} error={errors.selfRatingTrainingQuality?.message} readOnly={ro} />
+            <RatingField label={f.fields.selfRatingMotivation} name="selfRatingMotivation" register={register} error={errors.selfRatingMotivation?.message} readOnly={ro} />
+            <RatingField label={f.fields.selfRatingBody} name="selfRatingBody" register={register} error={errors.selfRatingBody?.message} readOnly={ro} />
+            <RatingField label={f.fields.selfRatingRecovery} name="selfRatingRecovery" register={register} error={errors.selfRatingRecovery?.message} readOnly={ro} />
+            <RatingField label={f.fields.selfRatingMental} name="selfRatingMental" register={register} error={errors.selfRatingMental?.message} readOnly={ro} />
+          </div>
+          <TextField label={f.fields.trainingPeriodReflection} name="trainingPeriodReflection" register={register} rows={4} readOnly={ro} />
+          <TextField label={f.fields.physicalStateNotes} name="physicalStateNotes" register={register} rows={3} readOnly={ro} />
+          <TextField label={f.fields.competitionReflection} name="competitionReflection" register={register} rows={3} readOnly={ro} />
+          <TextField label={f.fields.mentalPreparationReview} name="mentalPreparationReview" register={register} rows={3} readOnly={ro} />
+          <TextField label={f.fields.athleteDiscussionPoints} name="athleteDiscussionPoints" register={register} rows={3} readOnly={ro} />
+        </>
+      )}
+      <KataSelfRating repertoire={repertoire} register={register} readOnly={ro} />
+    </>
+  );
+}
+
+// Soft-lock wrapper: a titled block with an edit/lock toggle in the header. Passes the
+// current `locked` state to its render-prop child (which feeds SideAFields.readOnly).
+export function LockableSection({
+  title,
+  defaultLocked,
+  children,
+}: {
+  title: string;
+  defaultLocked: boolean;
+  children: (locked: boolean) => ReactNode;
+}) {
+  const [locked, setLocked] = useState(defaultLocked);
+  const f = useMessages().feedback;
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold">{title}</span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setLocked((l) => !l)}
+        >
+          {locked ? f.unlock : f.lock}
+        </Button>
+      </div>
+      {children(locked)}
+    </div>
+  );
+}
+
+/**
+ * Side A wrapped for a template: a plain Section normally, or a LockableSection
+ * (locked by default, athlete answers shown readOnly) at the in-person meeting after
+ * the athlete prepared. `lock` is the only difference between the two coach modes.
+ */
+export function SideASection({
+  formType,
+  register,
+  errors,
+  repertoire = [],
+  lock = false,
+}: {
+  formType: FormType;
+  register: FBRegister;
+  errors: FBErrors;
+  repertoire?: KataRepertoireItem[];
+  lock?: boolean;
+}) {
+  const f = useMessages().feedback;
+  if (lock) {
+    return (
+      <LockableSection title={f.sideA} defaultLocked>
+        {(locked) => (
+          <SideAFields
+            formType={formType}
+            register={register}
+            errors={errors}
+            repertoire={repertoire}
+            readOnly={locked}
+          />
+        )}
+      </LockableSection>
+    );
+  }
+  return (
+    <Section title={f.sideA}>
+      <SideAFields
+        formType={formType}
+        register={register}
+        errors={errors}
+        repertoire={repertoire}
+      />
     </Section>
   );
 }
@@ -233,7 +416,10 @@ export type FeedbackFormShellProps = {
 export type FeedbackTemplateProps = Omit<
   FeedbackFormShellProps,
   "formType" | "children"
->;
+> & {
+  // Soft-lock Side A (the in-person meeting after the athlete prepared).
+  lockSideA?: boolean;
+};
 
 // Templates that include the kata self-rating block (CADET / JUNIOR / SENIOR).
 export type KataTemplateProps = FeedbackTemplateProps & {

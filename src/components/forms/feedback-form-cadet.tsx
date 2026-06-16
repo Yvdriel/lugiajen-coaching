@@ -7,69 +7,28 @@ import {
   Field,
   FeedbackFormShell,
   type KataTemplateProps,
-  KataSelfRating,
-  RatingField,
   Section,
-  TextField,
+  SideASection,
 } from "./feedback-fields";
 
-export function FeedbackFormCadet({ repertoire, ...props }: KataTemplateProps) {
+export function FeedbackFormCadet({
+  repertoire,
+  lockSideA,
+  ...props
+}: KataTemplateProps) {
   const nl = useMessages();
   const f = nl.feedback;
   return (
     <FeedbackFormShell formType="CADET" {...props}>
       {(register, errors) => (
         <>
-          <Section title={f.sideA}>
-            <TextField
-              label={f.fields.athleteProudOf}
-              name="athleteProudOf"
-              register={register}
-            />
-            <TextField
-              label={f.fields.athleteHardestThing}
-              name="athleteHardestThing"
-              register={register}
-            />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <RatingField
-                label={f.fields.selfRatingTraining}
-                name="selfRatingTraining"
-                register={register}
-                error={errors.selfRatingTraining?.message}
-              />
-              <RatingField
-                label={f.fields.selfRatingMotivation}
-                name="selfRatingMotivation"
-                register={register}
-                error={errors.selfRatingMotivation?.message}
-              />
-              <RatingField
-                label={f.fields.selfRatingBody}
-                name="selfRatingBody"
-                register={register}
-                error={errors.selfRatingBody?.message}
-              />
-              <RatingField
-                label={f.fields.selfRatingCompetition}
-                name="selfRatingCompetition"
-                register={register}
-                error={errors.selfRatingCompetition?.message}
-              />
-            </div>
-            <TextField
-              label={f.fields.athleteNeedsWork}
-              name="athleteNeedsWork"
-              register={register}
-            />
-            <TextField
-              label={f.fields.athleteQuestion}
-              name="athleteQuestion"
-              register={register}
-            />
-          </Section>
-
-          <KataSelfRating repertoire={repertoire} register={register} />
+          <SideASection
+            formType="CADET"
+            register={register}
+            errors={errors}
+            repertoire={repertoire}
+            lock={lockSideA}
+          />
 
           <CoachSection register={register} />
 

@@ -27,6 +27,10 @@ export async function GET(
   if (!athlete || !form || form.athleteId !== athlete.id) {
     return new Response("Not found", { status: 404 });
   }
+  // A draft has no coach content yet — no PDF until the gesprek is completed.
+  if (form.status !== "completed") {
+    return new Response("Not available", { status: 404 });
+  }
 
   const [m, locale] = await Promise.all([getMessages(), getLocale()]);
   const buffer = await renderPdf(

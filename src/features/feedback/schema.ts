@@ -11,8 +11,9 @@ const rating = z.preprocess(
   z.coerce.number().int().min(1, "Minimaal 1.").max(5, "Maximaal 5.").optional(),
 );
 
-export const feedbackSchema = z
-  .object({
+// The raw object (no cross-field refine) so subsets can `.pick()` from it. The
+// public athlete-prep schema picks only Side A; `feedbackSchema` re-wraps the refine.
+export const feedbackBaseSchema = z.object({
     formType: z.enum(["U12", "CADET", "JUNIOR", "SENIOR"], {
       message: "Onbekend sjabloon.",
     }),
@@ -64,17 +65,18 @@ export const feedbackSchema = z
     action2: optText,
     action3: optText,
     action4: optText, // SENIOR
-  })
-  .superRefine((d, ctx) => {
-    const max = maxMeetingNumber(d.formType);
-    if (d.meetingNumber > max) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["meetingNumber"],
-        message: `Maximaal ${max}.`,
-      });
-    }
-  });
+});
+
+export const feedbackSchema = feedbackBaseSchema.superRefine((d, ctx) => {
+  const max = maxMeetingNumber(d.formType);
+  if (d.meetingNumber > max) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["meetingNumber"],
+      message: `Maximaal ${max}.`,
+    });
+  }
+});
 
 export type FeedbackParsed = z.infer<typeof feedbackSchema>;
 
@@ -116,6 +118,47 @@ export const FEEDBACK_CONTENT_FIELDS = [
   "action3",
   "action4",
 ] as const;
+
+// ── Side A / Side B partition (the public-prepare security boundary) ──────────
+// Coach-owned content — NEVER writable by the public athlete-prepare action.
+export const FEEDBACK_COACH_FIELDS = [
+  "coachStrength",
+  "coachDevelopmentArea",
+  "trainingStructureFeedback",
+  "previousGoalsReview",
+  "goalMain",
+  "goalPerformance",
+  "goalOutcome",
+  "kataFocus",
+  "periodizationNotes",
+  "physicalPlan",
+  "action1",
+  "action2",
+  "action3",
+  "action4",
+] as const;
+
+const COACH_SET: ReadonlySet<string> = new Set(FEEDBACK_COACH_FIELDS);
+
+// Side A (athlete self-assessment) = the content union minus coach fields. Derived
+// (not hand-listed) so a new content field can't silently become athlete-writable.
+export const FEEDBACK_ATHLETE_FIELDS = FEEDBACK_CONTENT_FIELDS.filter(
+  (k) => !COACH_SET.has(k),
+);
+
+// Public submit schema: only `formType` + Side A fields can be parsed. Even if a
+// coach field is smuggled into the FormData, it isn't in this schema's shape.
+export const athletePrepSchema = feedbackBaseSchema.pick(
+  Object.fromEntries([
+    ["formType", true],
+    ...FEEDBACK_ATHLETE_FIELDS.map((k) => [k, true]),
+  ]) as { formType: true } & Record<
+    (typeof FEEDBACK_ATHLETE_FIELDS)[number],
+    true
+  >,
+);
+
+export type AthletePrepParsed = z.infer<typeof athletePrepSchema>;
 
 // Field keys posted per template (documentation; the server reads the full union
 // above and nulls whatever a template omits).

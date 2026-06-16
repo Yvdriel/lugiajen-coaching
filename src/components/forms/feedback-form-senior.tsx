@@ -6,91 +6,29 @@ import {
   Field,
   FeedbackFormShell,
   type KataTemplateProps,
-  KataSelfRating,
-  RatingField,
   Section,
+  SideASection,
   TextField,
 } from "./feedback-fields";
 
-export function FeedbackFormSenior({ repertoire, ...props }: KataTemplateProps) {
+export function FeedbackFormSenior({
+  repertoire,
+  lockSideA,
+  ...props
+}: KataTemplateProps) {
   const nl = useMessages();
   const f = nl.feedback;
   return (
     <FeedbackFormShell formType="SENIOR" {...props}>
       {(register, errors) => (
         <>
-          <Section title={f.sideA}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <RatingField
-                label={f.fields.selfRatingTraining}
-                name="selfRatingTraining"
-                register={register}
-                error={errors.selfRatingTraining?.message}
-              />
-              <RatingField
-                label={f.fields.selfRatingTrainingQuality}
-                name="selfRatingTrainingQuality"
-                register={register}
-                error={errors.selfRatingTrainingQuality?.message}
-              />
-              <RatingField
-                label={f.fields.selfRatingMotivation}
-                name="selfRatingMotivation"
-                register={register}
-                error={errors.selfRatingMotivation?.message}
-              />
-              <RatingField
-                label={f.fields.selfRatingBody}
-                name="selfRatingBody"
-                register={register}
-                error={errors.selfRatingBody?.message}
-              />
-              <RatingField
-                label={f.fields.selfRatingRecovery}
-                name="selfRatingRecovery"
-                register={register}
-                error={errors.selfRatingRecovery?.message}
-              />
-              <RatingField
-                label={f.fields.selfRatingMental}
-                name="selfRatingMental"
-                register={register}
-                error={errors.selfRatingMental?.message}
-              />
-            </div>
-            <TextField
-              label={f.fields.trainingPeriodReflection}
-              name="trainingPeriodReflection"
-              register={register}
-              rows={4}
-            />
-            <TextField
-              label={f.fields.physicalStateNotes}
-              name="physicalStateNotes"
-              register={register}
-              rows={3}
-            />
-            <TextField
-              label={f.fields.competitionReflection}
-              name="competitionReflection"
-              register={register}
-              rows={3}
-            />
-            <TextField
-              label={f.fields.mentalPreparationReview}
-              name="mentalPreparationReview"
-              register={register}
-              rows={3}
-            />
-            <TextField
-              label={f.fields.athleteDiscussionPoints}
-              name="athleteDiscussionPoints"
-              register={register}
-              rows={3}
-            />
-          </Section>
-
-          <KataSelfRating repertoire={repertoire} register={register} />
+          <SideASection
+            formType="SENIOR"
+            register={register}
+            errors={errors}
+            repertoire={repertoire}
+            lock={lockSideA}
+          />
 
           <Section title={f.sideB}>
             <TextField

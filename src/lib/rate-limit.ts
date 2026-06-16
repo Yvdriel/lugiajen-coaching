@@ -61,3 +61,12 @@ export function createInMemoryRateLimiter({
 
 /** Shared limiter for the portal `proxy` (module-scope state). 30 req / 60 s. */
 export const portalRateLimiter = createInMemoryRateLimiter();
+
+/**
+ * Limiter for the public athlete-prepare submit action (defense in depth — the
+ * proxy already throttles page reads). Stricter than reads: 20 writes / 60 s.
+ */
+export const prepareRateLimiter = createInMemoryRateLimiter({
+  limit: 20,
+  windowMs: 60_000,
+});

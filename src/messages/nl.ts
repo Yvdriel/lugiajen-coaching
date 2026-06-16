@@ -230,6 +230,30 @@ export const nl = {
     kataSelfRatingHint: "Geef per kata een eerlijke score (1-10) en korte notitie.",
     kataSelfScore: "Score (1-10)",
     kataSelfNotes: "Notitie",
+    // Prepared-flow (coach side)
+    letPrepare: "Laat de atleet zich voorbereiden?",
+    letPrepareHint:
+      "De atleet vult vooraf zijn eigen deel in via een link. De rest vul je samen in tijdens het gesprek.",
+    prepareYes: "Ja, atleet bereidt voor",
+    prepareNo: "Nee, nu samen invullen",
+    createDraft: "Concept aanmaken",
+    startMeeting: "Gesprek starten",
+    complete: "Gesprek afronden",
+    sharePrepareLink: "Voorbereidingslink kopiëren",
+    prepareLinkCopied: "Gekopieerd!",
+    deleteDraft: "Concept verwijderen",
+    confirmDeleteDraft: "Concept verwijderen? Dit kan niet ongedaan worden gemaakt.",
+    awaitingAthlete: "Concept — wacht op atleet",
+    openedAt: "Geopend",
+    submittedAt: "Ingevuld",
+    notOpenedYet: "Nog niet geopend",
+    lock: "Vergrendelen",
+    unlock: "Bewerken",
+    status: {
+      awaiting_athlete: "Concept",
+      athlete_submitted: "Ingevuld",
+      completed: "Afgerond",
+    },
     fields: {
       athleteProudOf: "Waar ben je trots op?",
       athleteHardestThing: "Wat vond je het moeilijkst?",
@@ -364,5 +388,20 @@ export const nl = {
     title: "Atleetprofiel",
     readOnly: "Alleen-lezen weergave voor de atleet en ouders.",
     rateLimited: "Te veel verzoeken. Probeer het later opnieuw.",
+    prepareCta: "Je coach heeft een gesprek klaargezet — vul je deel in",
+    prepareOpen: "Invullen",
+    preparePending: "Ingevuld — wacht op het gesprek",
+  },
+  // Athlete-facing prepare page (always Dutch).
+  prepare: {
+    title: "Bereid je gesprek voor",
+    intro:
+      "Vul alvast je eigen deel in. Je coach bespreekt de rest tijdens jullie gesprek.",
+    submit: "Versturen",
+    submitted: "Bedankt! Je antwoorden zijn opgeslagen.",
+    submittedHint: "Je coach neemt ze door tijdens jullie gesprek.",
+    alreadyDone: "Dit gesprek is al gehouden.",
+    yourAnswers: "Jouw antwoorden",
+    notFound: "Deze link is niet (meer) geldig.",
   },
 } as const;
