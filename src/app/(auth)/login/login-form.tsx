@@ -6,12 +6,14 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useMessages } from "@/i18n/client";
 import { loginAction, type LoginState } from "./actions";
 import { loginSchema, type LoginInput } from "./schema";
 
 const initialState: LoginState = { ok: false };
 
 export function LoginForm() {
+  const nl = useMessages();
   const [state, formAction, pending] = useActionState(loginAction, initialState);
   const {
     register,
@@ -34,7 +36,7 @@ export function LoginForm() {
   return (
     <form action={formAction} className="flex flex-col gap-4" noValidate>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="email">E-mailadres</Label>
+        <Label htmlFor="email">{nl.auth.email}</Label>
         <Input
           id="email"
           type="email"
@@ -47,7 +49,7 @@ export function LoginForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="password">Wachtwoord</Label>
+        <Label htmlFor="password">{nl.auth.password}</Label>
         <Input
           id="password"
           type="password"
@@ -64,7 +66,7 @@ export function LoginForm() {
       )}
 
       <Button type="submit" disabled={pending}>
-        {pending ? "Bezig…" : "Inloggen"}
+        {pending ? nl.common.loading : nl.auth.signIn}
       </Button>
     </form>
   );

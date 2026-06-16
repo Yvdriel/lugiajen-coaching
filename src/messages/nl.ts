@@ -9,6 +9,23 @@ export const nl = {
     openMenu: "Menu openen",
     closeMenu: "Menu sluiten",
   },
+  auth: {
+    subtitle: "Log in om verder te gaan.",
+    email: "E-mailadres",
+    password: "Wachtwoord",
+    signIn: "Inloggen",
+  },
+  dashboard: {
+    title: "Dashboard",
+    subtitle: "Overzicht van je atleten en wedstrijden.",
+    activeAthletes: "Actieve atleten",
+    upcomingCompetitions: "Aankomende wedstrijden",
+    totalAthletes: "Totaal atleten",
+    athletes: "Atleten",
+    noAthletes: "Nog geen atleten.",
+    recentActivity: "Recente activiteit",
+    noActivity: "Nog geen activiteit.",
+  },
   common: {
     save: "Opslaan",
     cancel: "Annuleren",
@@ -40,6 +57,7 @@ export const nl = {
     edit: "Atleet bewerken",
     shareLink: "Deel link",
     linkCopied: "Link gekopieerd",
+    copyPrompt: "Kopieer de link:",
     rotateLink: "Nieuwe link",
     rotateConfirm:
       "Nieuwe deel-link maken? De oude link werkt daarna niet meer.",

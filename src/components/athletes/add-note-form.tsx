@@ -7,9 +7,10 @@ import {
   addAthleteNote,
   type AthleteFormState,
 } from "@/features/athletes/actions";
-import { nl } from "@/messages/nl";
+import { useMessages } from "@/i18n/client";
 
 export function AddNoteForm({ athleteId }: { athleteId: string }) {
+  const nl = useMessages();
   const [state, formAction, pending] = useActionState<
     AthleteFormState,
     FormData

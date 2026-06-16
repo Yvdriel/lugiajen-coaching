@@ -2,8 +2,9 @@ import { EntryBody } from "@/components/display/competition-entry-view";
 import { Badge } from "@/components/ui/badge";
 import { entryKataNames } from "@/features/competitions/entry";
 import { summarizeAthleteCompetitions } from "@/features/competitions/summary";
+import { formatDate } from "@/i18n/format";
+import { getLocale, getMessages } from "@/i18n/server";
 import type { AthleteCompetitionRow } from "@/lib/queries/competitions";
-import { nl } from "@/messages/nl";
 
 /**
  * Pure presentational athlete competition history + summary (convention 3). Read-only;
@@ -15,10 +16,6 @@ export type AthleteCompetitionsProps = {
   mode?: "coach" | "public";
 };
 
-function fmtDate(d: string): string {
-  return new Date(d).toLocaleDateString("nl-NL");
-}
-
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-lg border border-border p-3">
@@ -28,11 +25,13 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-export function AthleteCompetitions({
+export async function AthleteCompetitions({
   rows,
   kataNames,
   mode = "coach",
 }: AthleteCompetitionsProps) {
+  const nl = await getMessages();
+  const locale = await getLocale();
   const c = nl.competition;
   if (rows.length === 0) {
     return <p className="text-sm text-muted-foreground">{c.empty}</p>;
@@ -69,7 +68,8 @@ export function AthleteCompetitions({
               <div>
                 <p className="font-medium">{row.competitionName}</p>
                 <p className="text-sm text-muted-foreground">
-                  {fmtDate(row.competitionDate)} · {row.entry.category}
+                  {formatDate(row.competitionDate, locale)} ·{" "}
+                  {row.entry.category}
                 </p>
               </div>
               <Badge variant="outline">{c.types[row.competitionType]}</Badge>

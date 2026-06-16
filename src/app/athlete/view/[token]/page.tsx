@@ -22,7 +22,8 @@ import {
   getScoringHistory,
   getScoringSeriesByKata,
 } from "@/lib/queries/scoring";
-import { nl } from "@/messages/nl";
+import { formatDate } from "@/i18n/format";
+import { getLocale, getMessages } from "@/i18n/server";
 
 // ISR — the portal is read-only; a short window keeps it fresh after edits.
 export const revalidate = 300;
@@ -42,6 +43,7 @@ export async function generateMetadata({
   params: Promise<{ token: string }>;
 }): Promise<Metadata> {
   const { token } = await params;
+  const nl = await getMessages();
   const a = await getAthleteByViewToken(token);
   const title = a
     ? `${nl.portal.title} — ${a.firstName} ${a.lastName}`
@@ -59,6 +61,8 @@ export default async function PortalPage({
 }) {
   const { token } = await params;
   const { tab, scoreKata } = await searchParams;
+  const nl = await getMessages();
+  const locale = await getLocale();
   const a = await getAthleteByViewToken(token);
   if (!a) notFound();
 
@@ -199,7 +203,7 @@ export default async function PortalPage({
                   <details>
                     <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 p-4 text-sm">
                       <span>
-                        {new Date(form.meetingDate).toLocaleDateString("nl-NL")}
+                        {formatDate(form.meetingDate, locale)}
                         {" · "}
                         {nl.feedback.meeting} {form.meetingNumber}
                         {" · "}

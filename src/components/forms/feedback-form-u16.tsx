@@ -1,7 +1,7 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import { nl } from "@/messages/nl";
+import { useMessages } from "@/i18n/client";
 import {
   Field,
   type FeedbackTemplateProps,
@@ -12,6 +12,7 @@ import {
 } from "./feedback-fields";
 
 export function FeedbackFormU16(props: FeedbackTemplateProps) {
+  const nl = useMessages();
   const f = nl.feedback;
   return (
     <FeedbackFormShell formType="U16" {...props}>

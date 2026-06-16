@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { nl } from "@/messages/nl";
+import { useMessages } from "@/i18n/client";
 
 /** Parent-injected affordance (not part of the pure display header). */
 export function ShareLinkButton({ token }: { token: string }) {
+  const nl = useMessages();
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -15,7 +16,7 @@ export function ShareLinkButton({ token }: { token: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      window.prompt("Kopieer de link:", url);
+      window.prompt(nl.athlete.copyPrompt, url);
     }
   }
 

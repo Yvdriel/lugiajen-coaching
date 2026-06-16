@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { StyleSheet, Text, View } from "@react-pdf/renderer";
-import { nl } from "@/messages/nl";
+import type { Messages } from "@/messages";
 
 // Shared branded styles + primitives for the Ch11 PDFs. Server-only (this module
 // must never be imported by a client component). Monochrome palette mirrors the
@@ -92,16 +92,18 @@ export const styles = StyleSheet.create({
 });
 
 export function DocHeader({
+  m,
   title,
   subtitle,
 }: {
+  m: Messages;
   title: string;
   subtitle?: string;
 }) {
   return (
     <View style={styles.header}>
-      <Text style={styles.brand}>{nl.app.name}</Text>
-      <Text style={styles.brandSub}>{nl.app.tagline}</Text>
+      <Text style={styles.brand}>{m.app.name}</Text>
+      <Text style={styles.brandSub}>{m.app.tagline}</Text>
       <Text style={styles.docTitle}>{title}</Text>
       {subtitle ? <Text style={styles.docSubtitle}>{subtitle}</Text> : null}
     </View>
@@ -145,10 +147,10 @@ export function StatRow({
   );
 }
 
-export function Footer() {
+export function Footer({ m }: { m: Messages }) {
   return (
     <Text style={styles.footer} fixed>
-      {nl.app.name} · {nl.app.tagline}
+      {m.app.name} · {m.app.tagline}
     </Text>
   );
 }

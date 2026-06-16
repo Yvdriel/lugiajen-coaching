@@ -1,32 +1,34 @@
 import { Document, Page, View } from "@react-pdf/renderer";
+import { formatDate } from "@/i18n/format";
+import type { Locale, Messages } from "@/messages";
 import type { FeedbackRow } from "@/lib/queries/feedback";
-import { nl } from "@/messages/nl";
 import { feedbackSections } from "./feedback-sections";
 import { DocHeader, Field, Footer, SectionTitle, styles } from "./styles";
 
 // Branded A4 feedback-form PDF (Ch11). Server-only. Mirrors `feedback-detail`.
+// Localized: route handler passes the active `m` (messages) + `locale`.
 
 type Athlete = { firstName: string; lastName: string };
-
-function fmtDate(d: string): string {
-  return new Date(d).toLocaleDateString("nl-NL");
-}
 
 export function FeedbackDocument({
   athlete,
   form,
+  m,
+  locale,
 }: {
   athlete: Athlete;
   form: FeedbackRow;
+  m: Messages;
+  locale: Locale;
 }) {
-  const sections = feedbackSections(form);
+  const sections = feedbackSections(form, m);
   const name = `${athlete.firstName} ${athlete.lastName}`;
-  const subtitle = `${name} · ${nl.feedback.meeting} ${form.meetingNumber} · ${fmtDate(form.meetingDate)} · ${form.season} · ${form.formType}`;
+  const subtitle = `${name} · ${m.feedback.meeting} ${form.meetingNumber} · ${formatDate(form.meetingDate, locale)} · ${form.season} · ${form.formType}`;
 
   return (
-    <Document title={`${nl.pdf.feedbackTitle} — ${name}`} author={nl.app.name}>
+    <Document title={`${m.pdf.feedbackTitle} — ${name}`} author={m.app.name}>
       <Page size="A4" style={styles.page}>
-        <DocHeader title={nl.pdf.feedbackTitle} subtitle={subtitle} />
+        <DocHeader m={m} title={m.pdf.feedbackTitle} subtitle={subtitle} />
         {sections.map((s) => (
           <View key={s.title} style={styles.section} wrap={false}>
             <SectionTitle>{s.title}</SectionTitle>
@@ -39,7 +41,7 @@ export function FeedbackDocument({
             </View>
           </View>
         ))}
-        <Footer />
+        <Footer m={m} />
       </Page>
     </Document>
   );

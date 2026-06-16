@@ -9,8 +9,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatDate } from "@/i18n/format";
+import { getLocale, getMessages } from "@/i18n/server";
 import type { AthleteKataItem } from "@/lib/queries/kata";
-import { nl } from "@/messages/nl";
 
 /**
  * Pure presentational kata repertoire (convention 3): data via props + `mode`.
@@ -29,22 +30,21 @@ export type KataRepertoireProps = {
   actions?: (item: KataRepertoireItem) => ReactNode;
 };
 
-function fmtDate(d: string | null): string {
-  if (!d) return nl.kata.noAssessment;
-  return new Date(d).toLocaleDateString("nl-NL");
-}
-
-export function KataRepertoire({
+export async function KataRepertoire({
   items,
   mode = "coach",
   actions,
 }: KataRepertoireProps) {
+  const nl = await getMessages();
+  const locale = await getLocale();
   if (items.length === 0) {
     return <p className="text-sm text-muted-foreground">{nl.kata.empty}</p>;
   }
 
   const showActions = mode === "coach" && Boolean(actions);
   const k = nl.kata;
+  const fmtDate = (d: string | null): string =>
+    d ? formatDate(d, locale) : k.noAssessment;
 
   return (
     <Table>

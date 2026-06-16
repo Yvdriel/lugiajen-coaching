@@ -1,4 +1,5 @@
 import { createElement } from "react";
+import { getMessages } from "@/i18n/server";
 import { AthleteDocument } from "@/lib/pdf/athlete-document";
 import { pdfResponse, renderPdf, safeName } from "@/lib/pdf/http";
 import { loadOnePager } from "@/lib/pdf/load";
@@ -17,13 +18,17 @@ export async function GET(
   const athlete = await getAthleteByViewToken(token);
   if (!athlete) return new Response("Not found", { status: 404 });
 
-  const { age, categories, stats } = await loadOnePager(athlete);
+  const [{ age, categories, stats }, m] = await Promise.all([
+    loadOnePager(athlete),
+    getMessages(),
+  ]);
   const buffer = await renderPdf(
     createElement(AthleteDocument, {
       athlete,
       age,
       categories,
       stats,
+      m,
       includePhysicalNotes: false, // public — no physical notes
     }),
   );

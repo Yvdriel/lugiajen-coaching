@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { ENTRY_ROUNDS } from "@/features/competitions/schema";
+import { getMessages } from "@/i18n/server";
 import type { CompetitionEntry } from "@/lib/queries/competitions";
-import { nl } from "@/messages/nl";
 
 /**
  * Pure presentational pieces of a competition entry (convention 3), shared by the
@@ -26,7 +26,8 @@ function Row({
   );
 }
 
-export function ResultBadges({ entry }: { entry: CompetitionEntry }) {
+export async function ResultBadges({ entry }: { entry: CompetitionEntry }) {
+  const nl = await getMessages();
   const c = nl.competition;
   if (entry.resultPlacement == null && !entry.resultRoundReached) return null;
   return (
@@ -43,13 +44,14 @@ export function ResultBadges({ entry }: { entry: CompetitionEntry }) {
   );
 }
 
-export function RoundList({
+export async function RoundList({
   entry,
   kataNames,
 }: {
   entry: CompetitionEntry;
   kataNames: Map<string, string>;
 }) {
+  const nl = await getMessages();
   const c = nl.competition;
   const rounds = ENTRY_ROUNDS.map((r) => {
     const kataId = entry[r.kata];
@@ -72,13 +74,14 @@ export function RoundList({
   return <ul className="flex flex-col gap-1">{rounds}</ul>;
 }
 
-export function EntryFeedback({
+export async function EntryFeedback({
   entry,
   mode = "coach",
 }: {
   entry: CompetitionEntry;
   mode?: "coach" | "public";
 }) {
+  const nl = await getMessages();
   const e = nl.competition.entry;
   // coachNotes is coach-private — never shown in the public portal (convention 3).
   const showCoachNotes = mode === "coach" && Boolean(entry.coachNotes);

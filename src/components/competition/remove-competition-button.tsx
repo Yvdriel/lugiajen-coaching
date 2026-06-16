@@ -6,9 +6,10 @@ import {
   type CompetitionFormState,
   removeCompetition,
 } from "@/features/competitions/actions";
-import { nl } from "@/messages/nl";
+import { useMessages } from "@/i18n/client";
 
 export function RemoveCompetitionButton({ id }: { id: string }) {
+  const nl = useMessages();
   const [, formAction, pending] = useActionState<CompetitionFormState, FormData>(
     removeCompetition,
     { ok: false },

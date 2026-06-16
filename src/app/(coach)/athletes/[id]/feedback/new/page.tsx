@@ -12,7 +12,7 @@ import {
 import { blankFeedbackValues } from "@/features/feedback/values";
 import { calculateAge } from "@/lib/categories";
 import { getAthleteById } from "@/lib/queries/athletes";
-import { nl } from "@/messages/nl";
+import { getMessages } from "@/i18n/server";
 
 export default async function NewFeedbackPage({
   params,
@@ -21,6 +21,7 @@ export default async function NewFeedbackPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ type?: string }>;
 }) {
+  const nl = await getMessages();
   const { id } = await params;
   const { type } = await searchParams;
   const a = await getAthleteById(id);

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { nl } from "@/messages/nl";
+import { useMessages } from "@/i18n/client";
 
 /** Route-segment error boundary (convention 2: only genuine failures reach here). */
 export default function Error({
@@ -12,6 +12,7 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const nl = useMessages();
   useEffect(() => {
     console.error(error);
   }, [error]);

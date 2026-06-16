@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { CompetitionFormState } from "@/features/competitions/actions";
 import { COMPETITION_TYPES } from "@/features/competitions/schema";
-import { nl } from "@/messages/nl";
+import { useMessages } from "@/i18n/client";
 
 type Values = {
   name: string;
@@ -48,6 +48,7 @@ export function CompetitionForm({
   submitLabel,
   cancelHref,
 }: CompetitionFormProps) {
+  const nl = useMessages();
   const [state, formAction, pending] = useActionState<
     CompetitionFormState,
     FormData

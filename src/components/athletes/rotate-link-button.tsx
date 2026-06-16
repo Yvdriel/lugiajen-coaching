@@ -1,9 +1,9 @@
 "use client";
 
 import { useActionState } from "react";
-import { rotateViewToken } from "@/features/athletes/actions";
 import { Button } from "@/components/ui/button";
-import { nl } from "@/messages/nl";
+import { rotateViewToken } from "@/features/athletes/actions";
+import { useMessages } from "@/i18n/client";
 
 /**
  * Parent-injected affordance: rotates the athlete's public view-token, invalidating
@@ -11,6 +11,7 @@ import { nl } from "@/messages/nl";
  * `ShareLinkButton` next to this one picks up the new token.
  */
 export function RotateLinkButton({ athleteId }: { athleteId: string }) {
+  const nl = useMessages();
   const [, action, pending] = useActionState(rotateViewToken, { ok: false });
 
   return (

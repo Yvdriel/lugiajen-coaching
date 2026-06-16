@@ -1,7 +1,7 @@
 import { Document, Page, Text, View } from "@react-pdf/renderer";
+import type { Messages } from "@/messages";
 import type { AthleteStats } from "@/lib/athlete-stats";
 import type { Category } from "@/lib/categories";
-import { nl } from "@/messages/nl";
 import { DocHeader, Field, Footer, SectionTitle, StatRow, styles } from "./styles";
 
 // Athlete one-pager PDF (Ch11): the Overzicht tab in print form. Used by the
@@ -24,26 +24,28 @@ export function AthleteDocument({
   age,
   categories,
   stats,
+  m,
   includePhysicalNotes = false,
 }: {
   athlete: Athlete;
   age: number;
   categories: Category[];
   stats: AthleteStats;
+  m: Messages;
   includePhysicalNotes?: boolean;
 }) {
-  const o = nl.athlete.overview;
+  const o = m.athlete.overview;
   const comp = stats.competition;
   const name = `${athlete.firstName} ${athlete.lastName}`;
-  const subtitle = `${name} · ${age} ${nl.common.year} · ${athlete.beltRank} · ${categories.join(", ")}`;
+  const subtitle = `${name} · ${age} ${m.common.year} · ${athlete.beltRank} · ${categories.join(", ")}`;
 
   return (
     <Document
-      title={`${nl.pdf.athleteTitle} — ${name}`}
-      author={nl.app.name}
+      title={`${m.pdf.athleteTitle} — ${name}`}
+      author={m.app.name}
     >
       <Page size="A4" style={styles.page}>
-        <DocHeader title={nl.pdf.athleteTitle} subtitle={subtitle} />
+        <DocHeader m={m} title={m.pdf.athleteTitle} subtitle={subtitle} />
 
         <View style={styles.twoCol}>
           <View style={styles.col}>
@@ -58,18 +60,18 @@ export function AthleteDocument({
                 value={athlete.weightKg ? `${athlete.weightKg} kg` : o.none}
               />
               <StatRow
-                label={nl.athlete.fields.yearsTraining}
+                label={m.athlete.fields.yearsTraining}
                 value={athlete.yearsTraining}
               />
               {athlete.yearsCompeting != null ? (
                 <StatRow
-                  label={nl.athlete.fields.yearsCompeting}
+                  label={m.athlete.fields.yearsCompeting}
                   value={athlete.yearsCompeting}
                 />
               ) : null}
               {includePhysicalNotes ? (
                 <Field
-                  label={nl.athlete.fields.physicalNotes}
+                  label={m.athlete.fields.physicalNotes}
                   value={athlete.physicalNotes}
                 />
               ) : null}
@@ -93,14 +95,14 @@ export function AthleteDocument({
                   {comp.byType.map((tp) => (
                     <StatRow
                       key={tp.type}
-                      label={nl.competition.types[tp.type]}
+                      label={m.competition.types[tp.type]}
                       value={tp.count}
                     />
                   ))}
                   {comp.rounds.map((r) => (
                     <StatRow
                       key={r.labelKey}
-                      label={nl.competition.rounds[r.labelKey]}
+                      label={m.competition.rounds[r.labelKey]}
                       value={`${r.wins}-${r.losses}`}
                     />
                   ))}
@@ -119,7 +121,7 @@ export function AthleteDocument({
                   <StatRow
                     key={k.kataName}
                     label={k.kataName}
-                    value={`${nl.kata.proficiency} ${k.proficiency}`}
+                    value={`${m.kata.proficiency} ${k.proficiency}`}
                   />
                 ))
               )}
@@ -132,19 +134,19 @@ export function AthleteDocument({
               ) : (
                 <>
                   <Field
-                    label={nl.feedback.fields.goalMain}
+                    label={m.feedback.fields.goalMain}
                     value={stats.goals.goalMain}
                   />
                   <Field
-                    label={nl.feedback.fields.goalPerformance}
+                    label={m.feedback.fields.goalPerformance}
                     value={stats.goals.goalPerformance}
                   />
                   <Field
-                    label={nl.feedback.fields.goalOutcome}
+                    label={m.feedback.fields.goalOutcome}
                     value={stats.goals.goalOutcome}
                   />
                   <Field
-                    label={nl.feedback.fields.kataFocus}
+                    label={m.feedback.fields.kataFocus}
                     value={stats.goals.kataFocus}
                   />
                 </>
@@ -165,7 +167,7 @@ export function AthleteDocument({
             </View>
           </View>
         </View>
-        <Footer />
+        <Footer m={m} />
       </Page>
     </Document>
   );

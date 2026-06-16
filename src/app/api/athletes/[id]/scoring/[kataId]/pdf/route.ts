@@ -1,4 +1,5 @@
 import { createElement } from "react";
+import { getLocale, getMessages } from "@/i18n/server";
 import {
   assertCoach,
   isUuid,
@@ -33,8 +34,9 @@ export async function GET(
   ]);
   const kataName = kataLib.find((k) => k.id === kataId)?.name ?? "?";
 
+  const [m, locale] = await Promise.all([getMessages(), getLocale()]);
   const buffer = await renderPdf(
-    createElement(ScoringDocument, { athlete, kataName, history }),
+    createElement(ScoringDocument, { athlete, kataName, history, m, locale }),
   );
   return pdfResponse(
     buffer,

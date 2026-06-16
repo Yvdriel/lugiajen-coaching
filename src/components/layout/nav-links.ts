@@ -1,8 +1,7 @@
-import { nl } from "@/messages/nl";
-
-/** Coach nav targets — shared by the desktop sidebar and the mobile drawer. */
+// Coach nav targets — shared by the desktop sidebar and mobile drawer. Labels are
+// resolved at render via `messages.nav[key]` so they follow the active locale.
 export const NAV_LINKS = [
-  { href: "/dashboard", label: nl.nav.dashboard },
-  { href: "/athletes", label: nl.nav.athletes },
-  { href: "/competitions", label: nl.nav.competitions },
+  { href: "/dashboard", key: "dashboard" },
+  { href: "/athletes", key: "athletes" },
+  { href: "/competitions", key: "competitions" },
 ] as const;

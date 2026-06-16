@@ -18,8 +18,8 @@ import {
   type NumericCriterionKey,
   TEXT_FIELDS,
 } from "@/features/scoring/criteria";
+import { useMessages } from "@/i18n/client";
 import type { ScoringCardRow } from "@/lib/queries/scoring";
-import { nl } from "@/messages/nl";
 
 type Values = Record<string, string>;
 
@@ -36,6 +36,7 @@ export function ScoringCardForm({
   previousCard,
   today,
 }: ScoringCardFormProps) {
+  const nl = useMessages();
   const [state, formAction, pending] = useActionState<ScoringFormState, FormData>(
     saveScoringCard,
     { ok: false },

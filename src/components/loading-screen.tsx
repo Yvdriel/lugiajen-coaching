@@ -1,8 +1,11 @@
+"use client";
+
 import { Loader2 } from "lucide-react";
-import { nl } from "@/messages/nl";
+import { useMessages } from "@/i18n/client";
 
 /** Shared route-level loading fallback (used by `loading.tsx` segments). */
 export function LoadingScreen() {
+  const nl = useMessages();
   return (
     <div
       role="status"

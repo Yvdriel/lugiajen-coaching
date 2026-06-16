@@ -2,9 +2,10 @@ import Link from "next/link";
 import { CompetitionList } from "@/components/display/competition-list";
 import { buttonVariants } from "@/components/ui/button";
 import { getCompetitionsList } from "@/lib/queries/competitions";
-import { nl } from "@/messages/nl";
+import { getMessages } from "@/i18n/server";
 
 export default async function CompetitionsPage() {
+  const nl = await getMessages();
   const items = await getCompetitionsList();
 
   return (

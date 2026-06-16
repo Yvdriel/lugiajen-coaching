@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { FeedbackFormState } from "@/features/feedback/actions";
 import type { FormType } from "@/features/feedback/form-type";
-import { nl } from "@/messages/nl";
+import { useMessages } from "@/i18n/client";
 
 // Shared primitives for the U12 / U16 feedback forms. All field values are strings
 // (native FormData); the server coerces. RHF register is typed over a string record.
@@ -93,6 +93,7 @@ export function HeaderFields({
   register: FBRegister;
   errors: FBErrors;
 }) {
+  const nl = useMessages();
   const f = nl.feedback;
   return (
     <div className="grid gap-4 sm:grid-cols-3">
@@ -110,6 +111,7 @@ export function HeaderFields({
 }
 
 export function CoachSection({ register }: { register: FBRegister }) {
+  const nl = useMessages();
   const f = nl.feedback;
   return (
     <Section title={f.sideB}>
@@ -128,6 +130,7 @@ export function CoachSection({ register }: { register: FBRegister }) {
 }
 
 export function ActionItems({ register }: { register: FBRegister }) {
+  const nl = useMessages();
   const f = nl.feedback;
   return (
     <Section title={f.actionItems}>
@@ -177,6 +180,7 @@ export function FeedbackFormShell({
   submitLabel,
   children,
 }: FeedbackFormShellProps) {
+  const nl = useMessages();
   const [state, formAction, pending] = useActionState<
     FeedbackFormState,
     FormData

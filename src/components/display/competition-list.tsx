@@ -8,8 +8,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatDate } from "@/i18n/format";
+import { getLocale, getMessages } from "@/i18n/server";
 import type { CompetitionListItem } from "@/lib/queries/competitions";
-import { nl } from "@/messages/nl";
 
 /**
  * Pure presentational competition list (convention 3). Row affordances (open / edit)
@@ -20,11 +21,12 @@ export type CompetitionListProps = {
   actions?: (item: CompetitionListItem) => ReactNode;
 };
 
-function fmtDate(d: string): string {
-  return new Date(d).toLocaleDateString("nl-NL");
-}
-
-export function CompetitionList({ items, actions }: CompetitionListProps) {
+export async function CompetitionList({
+  items,
+  actions,
+}: CompetitionListProps) {
+  const nl = await getMessages();
+  const locale = await getLocale();
   if (items.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">{nl.competition.empty}</p>
@@ -49,7 +51,7 @@ export function CompetitionList({ items, actions }: CompetitionListProps) {
         {items.map((it) => (
           <TableRow key={it.id}>
             <TableCell className="font-medium">{it.name}</TableCell>
-            <TableCell>{fmtDate(it.date)}</TableCell>
+            <TableCell>{formatDate(it.date, locale)}</TableCell>
             <TableCell>
               <Badge variant="outline">{c.types[it.competitionType]}</Badge>
             </TableCell>

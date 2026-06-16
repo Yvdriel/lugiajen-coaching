@@ -5,13 +5,14 @@ import { buttonVariants } from "@/components/ui/button";
 import { getAthleteById } from "@/lib/queries/athletes";
 import { getAthleteKata } from "@/lib/queries/kata";
 import { getLatestScoringCard } from "@/lib/queries/scoring";
-import { nl } from "@/messages/nl";
+import { getMessages } from "@/i18n/server";
 
 export default async function ScoreKataPage({
   params,
 }: {
   params: Promise<{ id: string; kataId: string }>;
 }) {
+  const nl = await getMessages();
   const { id, kataId } = await params;
   const athlete = await getAthleteById(id);
   if (!athlete) notFound();

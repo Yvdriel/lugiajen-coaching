@@ -4,8 +4,9 @@ import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useMessages } from "@/i18n/client";
 import { cn } from "@/lib/utils";
-import { nl } from "@/messages/nl";
+import { LanguageToggle } from "./language-toggle";
 import { NAV_LINKS } from "./nav-links";
 import { NavUser } from "./nav-user";
 
@@ -24,6 +25,7 @@ export function MobileNav({
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const panelRef = useRef<HTMLDivElement>(null);
+  const nl = useMessages();
 
   // Close + focus management while the drawer is open.
   useEffect(() => {
@@ -43,12 +45,10 @@ export function MobileNav({
   return (
     <div className="md:hidden">
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background px-4 py-3">
-        <div>
+        <div className="flex items-center gap-3">
+          <LanguageToggle />
           <span className="font-heading text-base font-semibold">
             {nl.app.name}
-          </span>
-          <span className="ml-2 text-xs text-muted-foreground">
-            {nl.app.tagline}
           </span>
         </div>
         <button
@@ -106,7 +106,7 @@ export function MobileNav({
                         : "text-foreground/80",
                     )}
                   >
-                    {link.label}
+                    {nl.nav[link.key]}
                   </Link>
                 );
               })}

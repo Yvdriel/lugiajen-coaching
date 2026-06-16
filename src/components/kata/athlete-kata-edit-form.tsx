@@ -11,8 +11,8 @@ import {
   type AthleteKataFormState,
   updateAthleteKata,
 } from "@/features/kata/actions";
+import { useMessages } from "@/i18n/client";
 import type { AthleteKataItem } from "@/lib/queries/kata";
-import { nl } from "@/messages/nl";
 
 type Values = {
   roundOrder: string;
@@ -28,6 +28,7 @@ export function AthleteKataEditForm({
   athleteId: string;
   item: AthleteKataItem;
 }) {
+  const nl = useMessages();
   const [state, formAction, pending] = useActionState<
     AthleteKataFormState,
     FormData

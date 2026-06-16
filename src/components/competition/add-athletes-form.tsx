@@ -8,7 +8,7 @@ import {
   addCompetitionAthletes,
   type EntryFormState,
 } from "@/features/competitions/actions";
-import { nl } from "@/messages/nl";
+import { useMessages } from "@/i18n/client";
 
 /**
  * Detail-page multi-select to add athletes to a competition. Posts repeated
@@ -22,6 +22,7 @@ export function AddAthletesForm({
   competitionId: string;
   athletes: { id: string; firstName: string; lastName: string }[];
 }) {
+  const nl = useMessages();
   const [state, formAction, pending] = useActionState<EntryFormState, FormData>(
     addCompetitionAthletes,
     { ok: false },

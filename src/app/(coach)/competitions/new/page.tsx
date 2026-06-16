@@ -2,9 +2,10 @@ import Link from "next/link";
 import { CompetitionWizard } from "@/components/competition/competition-wizard";
 import { buttonVariants } from "@/components/ui/button";
 import { getActiveAthletesWithRepertoire } from "@/lib/queries/competitions";
-import { nl } from "@/messages/nl";
+import { getMessages } from "@/i18n/server";
 
 export default async function NewCompetitionPage() {
+  const nl = await getMessages();
   const athletes = await getActiveAthletesWithRepertoire();
 
   return (

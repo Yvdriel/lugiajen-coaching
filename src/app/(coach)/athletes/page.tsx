@@ -16,13 +16,14 @@ import {
   getAthletesList,
   getDistinctBelts,
 } from "@/lib/queries/athletes";
-import { nl } from "@/messages/nl";
+import { getMessages } from "@/i18n/server";
 
 export default async function AthletesPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const nl = await getMessages();
   const sp = await searchParams;
   const str = (k: string) => (typeof sp[k] === "string" ? sp[k] : undefined);
 

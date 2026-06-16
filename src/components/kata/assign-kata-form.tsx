@@ -9,7 +9,7 @@ import {
   type AthleteKataFormState,
   assignKata,
 } from "@/features/kata/actions";
-import { nl } from "@/messages/nl";
+import { useMessages } from "@/i18n/client";
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -23,6 +23,7 @@ export function AssignKataForm({
   athleteId: string;
   options: AssignKataOption[];
 }) {
+  const nl = useMessages();
   const [state, formAction, pending] = useActionState<
     AthleteKataFormState,
     FormData

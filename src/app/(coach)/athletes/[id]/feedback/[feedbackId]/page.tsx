@@ -8,7 +8,7 @@ import { updateFeedback } from "@/features/feedback/actions";
 import { feedbackToValues } from "@/features/feedback/values";
 import { getAthleteById } from "@/lib/queries/athletes";
 import { getFeedbackById } from "@/lib/queries/feedback";
-import { nl } from "@/messages/nl";
+import { getMessages } from "@/i18n/server";
 
 export default async function FeedbackDetailPage({
   params,
@@ -17,6 +17,7 @@ export default async function FeedbackDetailPage({
   params: Promise<{ id: string; feedbackId: string }>;
   searchParams: Promise<{ edit?: string }>;
 }) {
+  const nl = await getMessages();
   const { id, feedbackId } = await params;
   const { edit } = await searchParams;
   const [a, form] = await Promise.all([

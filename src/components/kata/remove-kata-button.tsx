@@ -6,7 +6,7 @@ import {
   type AthleteKataFormState,
   removeAthleteKata,
 } from "@/features/kata/actions";
-import { nl } from "@/messages/nl";
+import { useMessages } from "@/i18n/client";
 
 export function RemoveKataButton({
   athleteId,
@@ -15,6 +15,7 @@ export function RemoveKataButton({
   athleteId: string;
   id: string;
 }) {
+  const nl = useMessages();
   const [, formAction, pending] = useActionState<AthleteKataFormState, FormData>(
     removeAthleteKata,
     { ok: false },

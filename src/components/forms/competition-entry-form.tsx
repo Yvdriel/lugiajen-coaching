@@ -14,7 +14,7 @@ import {
 } from "@/features/competitions/actions";
 import { ENTRY_ROUNDS } from "@/features/competitions/schema";
 import type { EntryValues } from "@/features/competitions/values";
-import { nl } from "@/messages/nl";
+import { useMessages } from "@/i18n/client";
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -38,6 +38,7 @@ export function CompetitionEntryForm({
   defaultValues,
   kataOptions,
 }: CompetitionEntryFormProps) {
+  const nl = useMessages();
   const router = useRouter();
   const [state, formAction, pending] = useActionState<EntryFormState, FormData>(
     updateCompetitionEntry,

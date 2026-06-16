@@ -32,7 +32,8 @@ import {
   getScoringHistory,
   getScoringSeriesByKata,
 } from "@/lib/queries/scoring";
-import { nl } from "@/messages/nl";
+import { getLocale, getMessages } from "@/i18n/server";
+import { formatDateTime } from "@/i18n/format";
 
 const TABS = [
   "overview",
@@ -51,6 +52,8 @@ export default async function AthletePage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ tab?: string; scoreKata?: string; editKata?: string }>;
 }) {
+  const nl = await getMessages();
+  const locale = await getLocale();
   const { id } = await params;
   const { tab, scoreKata, editKata } = await searchParams;
   const a = await getAthleteById(id);
@@ -296,7 +299,7 @@ export default async function AthletePage({
                   >
                     <p className="whitespace-pre-wrap">{n.body}</p>
                     <time className="mt-1 block text-xs text-muted-foreground">
-                      {n.createdAt.toLocaleString("nl-NL")}
+                      {formatDateTime(n.createdAt, locale)}
                     </time>
                   </li>
                 ))}

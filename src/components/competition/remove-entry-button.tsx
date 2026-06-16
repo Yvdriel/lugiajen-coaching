@@ -6,7 +6,7 @@ import {
   type EntryFormState,
   removeCompetitionEntry,
 } from "@/features/competitions/actions";
-import { nl } from "@/messages/nl";
+import { useMessages } from "@/i18n/client";
 
 export function RemoveEntryButton({
   id,
@@ -17,6 +17,7 @@ export function RemoveEntryButton({
   competitionId: string;
   athleteId: string;
 }) {
+  const nl = useMessages();
   const [, formAction, pending] = useActionState<EntryFormState, FormData>(
     removeCompetitionEntry,
     { ok: false },

@@ -12,9 +12,10 @@ import {
   criteriaForGroup,
   formatDelta,
 } from "@/features/scoring/criteria";
+import { formatDate } from "@/i18n/format";
+import { getLocale, getMessages } from "@/i18n/server";
 import type { ScoringCardRow } from "@/lib/queries/scoring";
 import { cn } from "@/lib/utils";
-import { nl } from "@/messages/nl";
 
 /**
  * Pure presentational bulk history table (convention 3): all 13 criteria (rows) ×
@@ -26,14 +27,13 @@ export type ScoreHistoryTableProps = {
   history: ScoringCardRow[]; // newest-first (see lib/queries/scoring)
 };
 
-function fmtDate(d: string): string {
-  return new Date(d).toLocaleDateString("nl-NL");
-}
-
-export function ScoreHistoryTable({ history }: ScoreHistoryTableProps) {
+export async function ScoreHistoryTable({ history }: ScoreHistoryTableProps) {
+  const nl = await getMessages();
+  const locale = await getLocale();
   if (history.length === 0) {
     return <p className="text-sm text-muted-foreground">{nl.scoring.noCards}</p>;
   }
+  const fmtDate = (d: string): string => formatDate(d, locale);
 
   return (
     <Table>

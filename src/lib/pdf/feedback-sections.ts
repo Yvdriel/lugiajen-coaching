@@ -1,5 +1,5 @@
+import type { Messages } from "@/messages";
 import type { FeedbackRow } from "@/lib/queries/feedback";
-import { nl } from "@/messages/nl";
 
 // Pure shaping of a feedback form into ordered print sections — mirrors the
 // U12-vs-U16 branching of `display/feedback-detail.tsx`. Empty fields and empty
@@ -16,8 +16,8 @@ function clean(fields: RawField[]): PdfField[] {
     .map((f) => ({ label: f.label, value: f.value as string | number }));
 }
 
-export function feedbackSections(form: FeedbackRow): PdfSection[] {
-  const ff = nl.feedback.fields;
+export function feedbackSections(form: FeedbackRow, m: Messages): PdfSection[] {
+  const ff = m.feedback.fields;
   const isU12 = form.formType === "U12";
 
   const sideA = clean([
@@ -65,9 +65,9 @@ export function feedbackSections(form: FeedbackRow): PdfSection[] {
   ]);
 
   return [
-    { title: nl.feedback.sideA, fields: sideA },
-    { title: nl.feedback.sideB, fields: sideB },
-    { title: nl.feedback.goals, fields: goals },
-    { title: nl.feedback.actionItems, fields: actions },
+    { title: m.feedback.sideA, fields: sideA },
+    { title: m.feedback.sideB, fields: sideB },
+    { title: m.feedback.goals, fields: goals },
+    { title: m.feedback.actionItems, fields: actions },
   ].filter((s) => s.fields.length > 0);
 }

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { EntryBody } from "@/components/display/competition-entry-view";
+import { getMessages } from "@/i18n/server";
 import type { CompetitionEntryRow } from "@/lib/queries/competitions";
-import { nl } from "@/messages/nl";
 
 /**
  * Pure presentational list of a competition's entries (convention 3). Per-entry
@@ -13,11 +13,12 @@ export type CompetitionEntriesProps = {
   actions?: (entry: CompetitionEntryRow) => ReactNode;
 };
 
-export function CompetitionEntries({
+export async function CompetitionEntries({
   entries,
   kataNames,
   actions,
 }: CompetitionEntriesProps) {
+  const nl = await getMessages();
   if (entries.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">

@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getMessages } from "@/i18n/server";
 import type { Category } from "@/lib/categories";
 
 /**
@@ -22,7 +23,7 @@ export type AthleteCardProps = {
   mode?: "coach" | "public";
 };
 
-export function AthleteCard({
+export async function AthleteCard({
   firstName,
   lastName,
   age,
@@ -31,6 +32,7 @@ export function AthleteCard({
   isActive = true,
   mode = "coach",
 }: AthleteCardProps) {
+  const nl = await getMessages();
   return (
     <Card className="h-full transition-colors hover:bg-accent/40">
       <CardHeader>
@@ -40,7 +42,7 @@ export function AthleteCard({
           </span>
         </CardTitle>
         <CardDescription>
-          {age} jaar · {beltRank}
+          {age} {nl.common.year} · {beltRank}
           {mode === "coach" && !isActive ? " · inactief" : ""}
         </CardDescription>
       </CardHeader>

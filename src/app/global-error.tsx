@@ -1,12 +1,14 @@
 "use client";
 
 import "./globals.css";
-import { useEffect } from "react";
-import { nl } from "@/messages/nl";
+import { useEffect, useState } from "react";
+import { DEFAULT_LOCALE, isLocale, type Locale, messages } from "@/messages";
 
 /**
  * Last-resort boundary for errors in the root layout — it replaces the whole
- * document, so it renders its own <html>/<body> and stays dependency-light.
+ * document (so no LocaleProvider above it). Reads the locale cookie client-side
+ * after mount; renders the default locale on the server/first paint to avoid a
+ * hydration mismatch.
  */
 export default function GlobalError({
   error,
@@ -15,12 +17,20 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
+
   useEffect(() => {
     console.error(error);
+    const match = document.cookie.match(/(?:^|;\s*)lgj_locale=(nl|en)/);
+    // One-time client read of the locale cookie (no provider at this level).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (match && isLocale(match[1])) setLocale(match[1]);
   }, [error]);
 
+  const nl = messages[locale];
+
   return (
-    <html lang="nl">
+    <html lang={locale}>
       <body className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
         <h1 className="text-2xl font-semibold">{nl.error.title}</h1>
         <p className="max-w-sm text-sm text-gray-500">{nl.error.body}</p>

@@ -46,6 +46,7 @@ describe("feedbackSections", () => {
         athleteShowParents: "Mijn kata",
         selfRatingTraining: 5, // present in data but must be ignored for U12
       }),
+      nl,
     );
     const sideA = sections.find((s) => s.title === nl.feedback.sideA);
     expect(sideA).toBeTruthy();
@@ -64,6 +65,7 @@ describe("feedbackSections", () => {
         goalPerformance: "Top 3",
         kataFocus: "Kanku Dai",
       }),
+      nl,
     );
     const sideA = sections.find((s) => s.title === nl.feedback.sideA)!;
     expect(labels(sideA)).toContain(nl.feedback.fields.selfRatingTraining);
@@ -80,6 +82,7 @@ describe("feedbackSections", () => {
   it("drops empty fields and fully-empty sections", () => {
     const sections = feedbackSections(
       form({ formType: "U12", coachStrength: "Goede focus" }),
+      nl,
     );
     // Only Side B has content → it's the only section.
     expect(sections.map((s) => s.title)).toEqual([nl.feedback.sideB]);
@@ -87,6 +90,6 @@ describe("feedbackSections", () => {
   });
 
   it("returns no sections for a blank form", () => {
-    expect(feedbackSections(form({}))).toEqual([]);
+    expect(feedbackSections(form({}), nl)).toEqual([]);
   });
 });

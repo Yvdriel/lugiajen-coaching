@@ -16,8 +16,8 @@ import {
   ENTRY_CONTENT_FIELDS,
   ENTRY_ROUNDS,
 } from "@/features/competitions/schema";
+import { useMessages } from "@/i18n/client";
 import type { AthleteWithRepertoire } from "@/lib/queries/competitions";
-import { nl } from "@/messages/nl";
 import {
   DRAFT_KEY,
   type Draft,
@@ -48,6 +48,7 @@ export function CompetitionWizard({
 }: {
   athletes: AthleteWithRepertoire[];
 }) {
+  const nl = useMessages();
   const router = useRouter();
   const c = nl.competition;
   const w = c.wizard;

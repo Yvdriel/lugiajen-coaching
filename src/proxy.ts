@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { portalRateLimiter } from "@/lib/rate-limit";
-import { nl } from "@/messages/nl";
+import { DEFAULT_LOCALE, isLocale, messages } from "@/messages";
+
+// proxy runs before the request reaches React, so it reads the locale cookie
+// directly (it can't use the next/headers-based getLocale).
+const LOCALE_COOKIE = "lgj_locale";
 
 // Next.js 16 renamed `middleware` → `proxy` (runs on the nodejs runtime, so the
 // in-memory rate limiter keeps state across requests). Guards the public athlete
@@ -26,8 +30,10 @@ export function proxy(request: NextRequest): NextResponse {
   const { ok } = portalRateLimiter.check(`${ip}:${token}`);
 
   if (!ok) {
+    const cookieLocale = request.cookies.get(LOCALE_COOKIE)?.value;
+    const locale = isLocale(cookieLocale) ? cookieLocale : DEFAULT_LOCALE;
     return withPublicHeaders(
-      new NextResponse(nl.portal.rateLimited, {
+      new NextResponse(messages[locale].portal.rateLimited, {
         status: 429,
         headers: { "Retry-After": "60" },
       }),

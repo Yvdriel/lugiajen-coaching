@@ -3,8 +3,8 @@ import { ScoreTrendChart } from "@/components/charts/score-trend-chart";
 import { TrendSparkline } from "@/components/charts/trend-sparkline";
 import { ScoreHistoryTable } from "@/components/display/score-history-table";
 import { NUMERIC_CRITERIA, formatDelta } from "@/features/scoring/criteria";
+import { getMessages } from "@/i18n/server";
 import type { ScoringCardRow } from "@/lib/queries/scoring";
-import { nl } from "@/messages/nl";
 
 /**
  * Pure presentational scoring-card history for one kata (convention 3): radar of
@@ -14,7 +14,12 @@ import { nl } from "@/messages/nl";
  * affordance are injected by the parent. Shared by the coach Scorekaarten tab and
  * Ch10's public portal (`mode` not needed: every field here is athlete-facing).
  */
-export function ScoringHistoryPanel({ history }: { history: ScoringCardRow[] }) {
+export async function ScoringHistoryPanel({
+  history,
+}: {
+  history: ScoringCardRow[];
+}) {
+  const nl = await getMessages();
   const latestCard = history[0] ?? null;
 
   return (

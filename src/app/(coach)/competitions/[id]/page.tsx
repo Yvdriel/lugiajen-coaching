@@ -16,7 +16,8 @@ import {
   getCompetitionEntries,
 } from "@/lib/queries/competitions";
 import { getAthleteKata, getKataLibrary } from "@/lib/queries/kata";
-import { nl } from "@/messages/nl";
+import { getLocale, getMessages } from "@/i18n/server";
+import { formatDate } from "@/i18n/format";
 
 export default async function CompetitionDetailPage({
   params,
@@ -25,6 +26,8 @@ export default async function CompetitionDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ edit?: string; entry?: string }>;
 }) {
+  const nl = await getMessages();
+  const locale = await getLocale();
   const { id } = await params;
   const { edit, entry } = await searchParams;
   const comp = await getCompetitionById(id);
@@ -70,7 +73,7 @@ export default async function CompetitionDetailPage({
             <h1 className="font-heading text-2xl font-semibold">{comp.name}</h1>
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <Badge variant="outline">{c.types[comp.competitionType]}</Badge>
-              <span>{new Date(comp.date).toLocaleDateString("nl-NL")}</span>
+              <span>{formatDate(comp.date, locale)}</span>
               {comp.location ? (
                 <>
                   <span aria-hidden>·</span>

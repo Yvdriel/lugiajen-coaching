@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
+import { getMessages } from "@/i18n/server";
 import type { Category } from "@/lib/categories";
 
 /**
@@ -18,7 +19,7 @@ export type AthleteHeaderProps = {
   actions?: ReactNode;
 };
 
-export function AthleteHeader({
+export async function AthleteHeader({
   firstName,
   lastName,
   age,
@@ -28,6 +29,7 @@ export function AthleteHeader({
   mode = "coach",
   actions,
 }: AthleteHeaderProps) {
+  const nl = await getMessages();
   return (
     <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-6">
       <div className="flex items-center gap-4">
@@ -43,7 +45,7 @@ export function AthleteHeader({
             {firstName} {lastName}
           </h1>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <span>{age} jaar</span>
+            <span>{age} {nl.common.year}</span>
             <span aria-hidden>·</span>
             <span>{beltRank}</span>
             {mode === "coach" && !isActive && (

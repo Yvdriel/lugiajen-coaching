@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { AthleteFormState } from "@/features/athletes/actions";
-import { nl } from "@/messages/nl";
+import { useMessages } from "@/i18n/client";
 
 type Values = {
   firstName: string;
@@ -59,6 +59,7 @@ export function AthleteForm({
   athleteId,
   submitLabel,
 }: AthleteFormProps) {
+  const nl = useMessages();
   const [state, formAction, pending] = useActionState<
     AthleteFormState,
     FormData

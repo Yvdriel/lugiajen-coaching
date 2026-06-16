@@ -3,10 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useMessages } from "@/i18n/client";
 import { authClient } from "@/lib/auth-client";
 
 export function NavUser({ name, email }: { name: string; email: string }) {
   const router = useRouter();
+  const nl = useMessages();
   const [pending, setPending] = useState(false);
 
   async function handleSignOut() {
@@ -29,7 +31,7 @@ export function NavUser({ name, email }: { name: string; email: string }) {
         onClick={handleSignOut}
         disabled={pending}
       >
-        {pending ? "Bezig…" : "Uitloggen"}
+        {pending ? nl.common.loading : nl.nav.signOut}
       </Button>
     </div>
   );

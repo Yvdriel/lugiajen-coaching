@@ -9,8 +9,8 @@ import {
 } from "recharts";
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { NUMERIC_CRITERIA } from "@/features/scoring/criteria";
+import { useMessages } from "@/i18n/client";
 import type { ScoringCardRow } from "@/lib/queries/scoring";
-import { nl } from "@/messages/nl";
 
 /**
  * Radar of the latest card's 12 WKF criteria (technical + athletic, excluding the
@@ -19,11 +19,11 @@ import { nl } from "@/messages/nl";
  */
 const RADAR_CRITERIA = NUMERIC_CRITERIA.filter((c) => c.group !== "overall");
 
-const config = {
-  score: { label: nl.scoring.charts.currentScores, color: "var(--chart-4)" },
-} satisfies ChartConfig;
-
 export function ScoreRadarChart({ card }: { card: ScoringCardRow }) {
+  const nl = useMessages();
+  const config = {
+    score: { label: nl.scoring.charts.currentScores, color: "var(--chart-4)" },
+  } satisfies ChartConfig;
   const data = RADAR_CRITERIA.map((c) => ({
     criterion: nl.scoring.criteria[c.key],
     score: card[c.key] as number,

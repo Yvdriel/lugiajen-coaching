@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
+import { formatDate } from "@/i18n/format";
+import { getLocale, getMessages } from "@/i18n/server";
 import type { FeedbackRow } from "@/lib/queries/feedback";
-import { nl } from "@/messages/nl";
 
 /**
  * Pure presentational feedback detail (convention 3): the full form content, laid
@@ -37,7 +38,9 @@ function Block({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-export function FeedbackDetail({ form }: FeedbackDetailProps) {
+export async function FeedbackDetail({ form }: FeedbackDetailProps) {
+  const nl = await getMessages();
+  const locale = await getLocale();
   const f = nl.feedback;
   const ff = f.fields;
   const isU12 = form.formType === "U12";
@@ -50,7 +53,7 @@ export function FeedbackDetail({ form }: FeedbackDetailProps) {
           {f.meeting} {form.meetingNumber}
         </span>
         <span aria-hidden>·</span>
-        <span>{new Date(form.meetingDate).toLocaleDateString("nl-NL")}</span>
+        <span>{formatDate(form.meetingDate, locale)}</span>
         <span aria-hidden>·</span>
         <span>{form.season}</span>
       </div>

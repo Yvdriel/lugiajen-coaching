@@ -4,8 +4,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getMessages } from "@/i18n/server";
 import type { AthleteStats } from "@/lib/athlete-stats";
-import { nl } from "@/messages/nl";
 
 /**
  * Pure presentational stats overview (convention 3). Renders the assembled
@@ -29,11 +29,12 @@ const GOAL_KEYS = [
   "kataFocus",
 ] as const;
 
-export function StatsOverview({
+export async function StatsOverview({
   physical,
   stats,
   mode = "coach",
 }: StatsOverviewProps) {
+  const nl = await getMessages();
   const o = nl.athlete.overview;
   const comp = stats?.competition;
 

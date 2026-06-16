@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { nl } from "@/messages/nl";
+import { getMessages } from "@/i18n/server";
 
-export default function NotFound() {
+export default async function NotFound() {
+  const nl = await getMessages();
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
       <p className="font-heading text-5xl font-semibold">404</p>

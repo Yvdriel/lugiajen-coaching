@@ -8,8 +8,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatDate } from "@/i18n/format";
+import { getLocale, getMessages } from "@/i18n/server";
 import type { FeedbackRow } from "@/lib/queries/feedback";
-import { nl } from "@/messages/nl";
 
 /**
  * Pure presentational feedback list (convention 3): chronological rows. Per-row
@@ -21,11 +22,9 @@ export type FeedbackListProps = {
   actions?: (item: FeedbackRow) => ReactNode;
 };
 
-function fmtDate(d: string): string {
-  return new Date(d).toLocaleDateString("nl-NL");
-}
-
-export function FeedbackList({ items, actions }: FeedbackListProps) {
+export async function FeedbackList({ items, actions }: FeedbackListProps) {
+  const nl = await getMessages();
+  const locale = await getLocale();
   if (items.length === 0) {
     return <p className="text-sm text-muted-foreground">{nl.feedback.empty}</p>;
   }
@@ -46,7 +45,7 @@ export function FeedbackList({ items, actions }: FeedbackListProps) {
       <TableBody>
         {items.map((it) => (
           <TableRow key={it.id}>
-            <TableCell>{fmtDate(it.meetingDate)}</TableCell>
+            <TableCell>{formatDate(it.meetingDate, locale)}</TableCell>
             <TableCell className="tabular-nums">{it.meetingNumber}</TableCell>
             <TableCell className="text-muted-foreground">{it.season}</TableCell>
             <TableCell>

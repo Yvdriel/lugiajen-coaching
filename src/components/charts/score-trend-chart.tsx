@@ -7,31 +7,30 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { useLocale, useMessages } from "@/i18n/client";
+import { formatDate } from "@/i18n/format";
 import type { ScoringCardRow } from "@/lib/queries/scoring";
-import { nl } from "@/messages/nl";
 
 /**
  * Overall-impression trend over assessment dates (oldest→newest). Pure (props only);
  * monochrome via the grayscale `--chart-*` brand tokens.
  */
-const config = {
-  overall: {
-    label: nl.scoring.criteria.overallImpression,
-    color: "var(--chart-4)",
-  },
-} satisfies ChartConfig;
-
-function fmtShort(d: string): string {
-  return new Date(d).toLocaleDateString("nl-NL", {
-    day: "2-digit",
-    month: "2-digit",
-  });
-}
-
 export function ScoreTrendChart({ history }: { history: ScoringCardRow[] }) {
+  const nl = useMessages();
+  const locale = useLocale();
+  const config = {
+    overall: {
+      label: nl.scoring.criteria.overallImpression,
+      color: "var(--chart-4)",
+    },
+  } satisfies ChartConfig;
+
   // history is newest-first; chart left→right oldest→newest.
   const data = [...history].reverse().map((c) => ({
-    date: fmtShort(c.assessmentDate),
+    date: formatDate(c.assessmentDate, locale, {
+      day: "2-digit",
+      month: "2-digit",
+    }),
     overall: c.overallImpression,
   }));
 

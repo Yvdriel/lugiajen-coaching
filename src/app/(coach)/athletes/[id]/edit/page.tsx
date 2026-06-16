@@ -1,14 +1,15 @@
 import { notFound } from "next/navigation";
 import { AthleteForm } from "@/components/forms/athlete-form";
 import { updateAthlete } from "@/features/athletes/actions";
+import { getMessages } from "@/i18n/server";
 import { getAthleteById } from "@/lib/queries/athletes";
-import { nl } from "@/messages/nl";
 
 export default async function EditAthletePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const nl = await getMessages();
   const { id } = await params;
   const a = await getAthleteById(id);
   if (!a) notFound();

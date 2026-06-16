@@ -1,8 +1,9 @@
 import { AthleteForm } from "@/components/forms/athlete-form";
 import { createAthlete } from "@/features/athletes/actions";
-import { nl } from "@/messages/nl";
+import { getMessages } from "@/i18n/server";
 
-export default function NewAthletePage() {
+export default async function NewAthletePage() {
+  const nl = await getMessages();
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6 p-6 md:p-8">
       <h1 className="font-heading text-2xl font-semibold">{nl.athlete.new}</h1>
