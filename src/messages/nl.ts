@@ -113,6 +113,30 @@ export const nl = {
       placeholder: "Nieuwe observatie…",
       empty: "Nog geen notities.",
     },
+    privacy: {
+      section: "Privacy & contact",
+      contactEmail: "Contact e-mail",
+      contactEmailHint:
+        "Waar voorbereidings- en portaal-links naartoe gaan (vaak een ouder).",
+      portalBlocked: "Portaal geblokkeerd — ouderlijke toestemming vereist (AVG).",
+      noContactEmail: "Geen contact-e-mail — links kunnen niet verstuurd worden.",
+      // Parental consent (coach-facing — coach can only request, never set, consent).
+      sendConsentEmail: "Verstuur AVG-toestemmingsmail",
+      consentDialogTitle: "AVG-toestemming aanvragen",
+      consentDialogHint:
+        "Vul het e-mailadres van de ouder/verzorger in. Zij krijgen een link om toestemming te geven.",
+      consentEmailLabel: "E-mail ouder/verzorger",
+      consentSend: "Versturen",
+      consentSent: "Toestemmingsmail verstuurd.",
+      consentGivenOn: "Toestemming gegeven op",
+      consentBy: "door",
+      consentNotGiven: "Nog geen ouderlijke toestemming.",
+      consentPending: "Toestemmingsverzoek verzonden — verloopt",
+      consentExpired: "Toestemmingsverzoek verlopen — stuur opnieuw.",
+      consentResend: "Opnieuw versturen",
+      sendFailed: "Versturen mislukt. Probeer het opnieuw.",
+      emailNotConfigured: "E-mail is niet geconfigureerd.",
+    },
     comingSoon: "Binnenkort beschikbaar.",
   },
   athletes: {
@@ -241,6 +265,13 @@ export const nl = {
     complete: "Gesprek afronden",
     sharePrepareLink: "Voorbereidingslink kopiëren",
     prepareLinkCopied: "Gekopieerd!",
+    sendLink: "Stuur link",
+    resendLink: "Stuur opnieuw",
+    linkSent: "Link verstuurd.",
+    sendNoEmail: "Geen contact-e-mail — vul er een in bij de atleet.",
+    sendBlockedConsent: "Eerst ouderlijke toestemming vastleggen (AVG).",
+    sendFailed: "Versturen mislukt. Probeer het opnieuw.",
+    emailNotConfigured: "E-mail is niet geconfigureerd.",
     deleteDraft: "Concept verwijderen",
     confirmDeleteDraft: "Concept verwijderen? Dit kan niet ongedaan worden gemaakt.",
     awaitingAthlete: "Concept — wacht op atleet",
@@ -391,6 +422,9 @@ export const nl = {
     prepareCta: "Je coach heeft een gesprek klaargezet — vul je deel in",
     prepareOpen: "Invullen",
     preparePending: "Ingevuld — wacht op het gesprek",
+    blockedTitle: "Profiel niet beschikbaar",
+    blockedBody:
+      "Dit profiel is afgeschermd. Neem contact op met de coach voor toegang.",
   },
   // Athlete-facing prepare page (always Dutch).
   prepare: {
@@ -403,5 +437,73 @@ export const nl = {
     alreadyDone: "Dit gesprek is al gehouden.",
     yourAnswers: "Jouw antwoorden",
     notFound: "Deze link is niet (meer) geldig.",
+  },
+  // Transactional email copy (athlete-facing → always Dutch).
+  email: {
+    brandFooter: "Lu Gia Jen — Shotokan Karate",
+    prepareInvite: {
+      subject: "Bereid je gesprek voor",
+      reminderSubject: "Herinnering: bereid je gesprek voor",
+      preview: "Vul je eigen deel van het gesprek vast in.",
+      heading: "Bereid je gesprek voor",
+      hi: "Hoi",
+      intro:
+        "Je coach heeft een feedbackgesprek klaargezet. Vul alvast je eigen deel in — dat kost maar een paar minuten.",
+      reminderIntro:
+        "Kleine herinnering: je hebt je deel van het feedbackgesprek nog niet ingevuld. Het kost maar een paar minuten.",
+      meetingLabel: "Gesprek",
+      button: "Vul je deel in",
+      fallback: "Werkt de knop niet? Open deze link:",
+    },
+    coachSubmitted: {
+      subject: "Voorbereiding ingevuld",
+      preview: "Een atleet heeft het voorbereidingsformulier ingevuld.",
+      heading: "Voorbereiding ingevuld",
+      intro: "heeft het voorbereidingsformulier ingevuld en is klaar voor het gesprek.",
+      meetingLabel: "Gesprek",
+      button: "Bekijk antwoorden",
+    },
+  },
+  // Parental-consent flow (athlete/parent-facing → always Dutch).
+  consent: {
+    page: {
+      title: "Toestemming ouder/verzorger",
+      intro:
+        "Je geeft toestemming voor het verwerken van de gegevens van",
+      dataTitle: "Welke gegevens",
+      data: "Naam, geboortedatum, bandgraad, kata-beoordelingen, wedstrijdresultaten en feedback van trainingsgesprekken.",
+      whyTitle: "Waarom",
+      why: "Om de ontwikkeling van je kind te volgen en te begeleiden, en om de voortgang met jou als ouder/verzorger te delen.",
+      whoTitle: "Wie ziet het",
+      who: "De coach. Via een privé-link kun jij als ouder/verzorger het profiel ook bekijken.",
+      rightsTitle: "Jouw rechten",
+      rights:
+        "Je mag de gegevens inzien, laten corrigeren of laten verwijderen, en je toestemming op elk moment intrekken. Neem daarvoor contact op met de coach.",
+      linksTitle: "Meer informatie",
+      apLink: "Autoriteit Persoonsgegevens — kinderen en privacy",
+      privacyLink: "Privacybeleid van de club",
+      fullNameLabel: "Volledige naam ouder/verzorger",
+      fullNamePlaceholder: "Voor- en achternaam",
+      agree:
+        "Ik ben de ouder/verzorger en geef toestemming voor het verwerken van bovenstaande gegevens.",
+      countdown: "Verzenden mogelijk over",
+      countdownUnit: "s",
+      submit: "Bevestig toestemming",
+      submitted: "Bedankt! Je toestemming is vastgelegd.",
+      submittedHint: "Je kunt dit venster sluiten.",
+      invalid: "Deze link is niet (meer) geldig.",
+      expired: "Deze link is verlopen. Vraag de coach om een nieuwe link.",
+      alreadyGiven: "Toestemming is al gegeven. Bedankt!",
+    },
+    email: {
+      subject: "Toestemming gevraagd (AVG)",
+      preview: "Geef toestemming voor de gegevens van je kind.",
+      heading: "Toestemming ouder/verzorger",
+      intro:
+        "De coach vraagt je toestemming voor het verwerken van de gegevens van",
+      body: "Voor het volgen van de ontwikkeling van je kind legt Lu Gia Jen gegevens vast. Omdat je kind jonger is dan 16, is jouw toestemming nodig (AVG). Klik hieronder, lees de uitleg en bevestig.",
+      button: "Geef toestemming",
+      fallback: "Werkt de knop niet? Open deze link:",
+    },
   },
 } as const;

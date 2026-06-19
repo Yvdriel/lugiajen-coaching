@@ -36,6 +36,20 @@
       "when": 1781628202406,
       "tag": "0004_third_fenris",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1781864574082,
+      "tag": "0005_amazing_maximus",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781866049930,
+      "tag": "0006_normal_starbolt",
+      "breakpoints": true
     }
   ]
 }

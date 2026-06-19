@@ -18,6 +18,12 @@ const EnvSchema = z.object({
     .enum(["true", "false"])
     .optional()
     .transform((v) => v === "true"),
+  // Email (Resend). Optional so local dev / tests / CI run without them; the send
+  // helpers no-op when RESEND_API_KEY is absent (lib/email/send.ts).
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM: z.string().min(1).optional(), // e.g. "Lu Gia Jen <noreply@…>"
+  // Shared secret guarding the cron route (Authorization: Bearer …).
+  CRON_SECRET: z.string().min(1).optional(),
 });
 
 const parsed = EnvSchema.safeParse(process.env);

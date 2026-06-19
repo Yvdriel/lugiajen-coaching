@@ -9,11 +9,14 @@ const LOCALE_COOKIE = "lgj_locale";
 
 // Next.js 16 renamed `middleware` → `proxy` (runs on the nodejs runtime, so the
 // in-memory rate limiter keeps state across requests). Guards the public surfaces:
-// the athlete portal and the athlete-prepare page. For both, the token is the 4th
-// path segment (`/athlete/view/<t>` and `/feedback/prepare/<t>`), so the handler's
-// token parsing and headers apply unchanged.
+// the athlete portal, the athlete-prepare page, and the parental-consent page. The
+// token is always the last path segment, so the handler parses it generically.
 export const config = {
-  matcher: ["/athlete/view/:path*", "/feedback/prepare/:path*"],
+  matcher: [
+    "/athlete/view/:path*",
+    "/feedback/prepare/:path*",
+    "/consent/:path*",
+  ],
 };
 
 function withPublicHeaders(res: NextResponse): NextResponse {
@@ -25,8 +28,9 @@ function withPublicHeaders(res: NextResponse): NextResponse {
 }
 
 export function proxy(request: NextRequest): NextResponse {
-  // Rate-limit by IP + view-token so one client can't hammer the portal.
-  const token = request.nextUrl.pathname.split("/")[3] ?? "";
+  // Rate-limit by IP + token (last path segment) so one client can't hammer it.
+  const token =
+    request.nextUrl.pathname.split("/").filter(Boolean).at(-1) ?? "";
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const { ok } = portalRateLimiter.check(`${ip}:${token}`);

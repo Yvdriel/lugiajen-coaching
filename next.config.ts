@@ -3,8 +3,13 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // @react-pdf/renderer ships its own React reconciler — keep it out of the
   // bundle so it runs as a plain Node dependency (avoids the bundled-reconciler
-  // "ba.Component is not a constructor" crash). Ch11.
-  serverExternalPackages: ["@react-pdf/renderer"],
+  // "ba.Component is not a constructor" crash). Ch11. React Email's renderer is
+  // kept external for the same reason (it renders email components server-side).
+  serverExternalPackages: [
+    "@react-pdf/renderer",
+    "@react-email/components",
+    "@react-email/render",
+  ],
 
   // Baseline security headers on every response (Ch12 hardening). A strict CSP
   // needs nonce wiring and is left as a documented follow-up; the portal `proxy`

@@ -4,6 +4,7 @@ import { AthleteAnswers } from "@/components/display/athlete-answers";
 import { AthleteCompetitions } from "@/components/display/athlete-competitions";
 import { AthleteHeader } from "@/components/display/athlete-header";
 import { FeedbackDetail } from "@/components/display/feedback-detail";
+import { PortalBlocked } from "@/components/display/portal-blocked";
 import {
   KataRepertoire,
   type KataRepertoireItem,
@@ -12,6 +13,7 @@ import { ScoringHistoryPanel } from "@/components/display/scoring-history-panel"
 import { StatsOverview } from "@/components/display/stats-overview";
 import { buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { isPortalBlocked } from "@/features/athletes/consent";
 import { buildAthleteStats } from "@/lib/athlete-stats";
 import { calculateAge, getCategories } from "@/lib/categories";
 import { getAthleteByViewToken } from "@/lib/queries/athletes";
@@ -50,9 +52,11 @@ export async function generateMetadata({
   const { token } = await params;
   const nl = await getMessages();
   const a = await getAthleteByViewToken(token);
-  const title = a
-    ? `${nl.portal.title} — ${a.firstName} ${a.lastName}`
-    : nl.portal.title;
+  // Don't leak a blocked minor's name in the tab title.
+  const title =
+    a && !isPortalBlocked(a)
+      ? `${nl.portal.title} — ${a.firstName} ${a.lastName}`
+      : nl.portal.title;
   // Never index the portal; never follow links out of it.
   return { title, robots: { index: false, follow: false } };
 }
@@ -70,6 +74,8 @@ export default async function PortalPage({
   const locale = await getLocale();
   const a = await getAthleteByViewToken(token);
   if (!a) notFound();
+  // AVG/GDPR: under-16 without recorded parental consent → no data shown.
+  if (isPortalBlocked(a)) return <PortalBlocked />;
 
   const activeTab: Tab = TABS.includes(tab as Tab) ? (tab as Tab) : "overview";
 

@@ -9,9 +9,11 @@ import { FeedbackFormU12 } from "@/components/forms/feedback-form-u12";
 import {
   DeleteDraftButton,
   PrepareLinkButton,
+  SendPrepareLinkButton,
 } from "@/components/forms/prepare-link-actions";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { resolveRecipient } from "@/features/athletes/consent";
 import { completeFeedback, updateFeedback } from "@/features/feedback/actions";
 import {
   feedbackToValues,
@@ -46,6 +48,13 @@ export default async function FeedbackDetailPage({
   if (!a || !form || form.athleteId !== a.id) notFound();
 
   const f = nl.feedback;
+  // Can the prepare link be emailed? (consent gate + contact email on file)
+  const recipient = resolveRecipient(a);
+  const sendDisabledReason = recipient.ok
+    ? undefined
+    : recipient.reason === "consent"
+      ? f.sendBlockedConsent
+      : f.sendNoEmail;
   const isDraft = form.status === "awaiting_athlete";
   const isSubmitted = form.status === "athlete_submitted";
   const editing = edit === "1" && !isDraft;
@@ -126,10 +135,16 @@ export default async function FeedbackDetailPage({
               </dd>
             </div>
           </dl>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-start gap-2">
             {form.prepareToken ? (
               <PrepareLinkButton token={form.prepareToken} />
             ) : null}
+            <SendPrepareLinkButton
+              athleteId={a.id}
+              feedbackId={form.id}
+              alreadySent={form.lastReminderAt != null}
+              disabledReason={sendDisabledReason}
+            />
             <DeleteDraftButton athleteId={a.id} feedbackId={form.id} />
           </div>
         </div>
