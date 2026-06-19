@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   date,
   index,
@@ -46,6 +47,37 @@ export const competitionTypeEnum = pgEnum("competition_type", [
   "international",
 ]);
 export const roundResultEnum = pgEnum("round_result", ["win", "loss"]);
+
+// ── Video clip enums ──────────────────────────────────────────────────────────
+// kind: raw = original recording; analysis/comparison = Kinovea re-uploads pointing
+// back at their source via derivedFromClipId; still = single annotated frame.
+export const clipKindEnum = pgEnum("clip_kind", [
+  "raw",
+  "analysis",
+  "comparison",
+  "still",
+]);
+// Only Cloudflare Stream today; enum leaves room for future providers.
+export const clipProviderEnum = pgEnum("clip_provider", ["cloudflare_stream"]);
+// uploading -> processing -> ready, with error as the terminal failure state.
+export const clipStatusEnum = pgEnum("clip_status", [
+  "uploading",
+  "processing",
+  "ready",
+  "error",
+]);
+// coach_only by default; promotion to portal is always explicit, never on upload.
+export const clipVisibilityEnum = pgEnum("clip_visibility", [
+  "coach_only",
+  "portal",
+]);
+// Polymorphic attachment target. contextId is intentionally not a FK.
+export const clipContextTypeEnum = pgEnum("clip_context_type", [
+  "score_card",
+  "competition_entry",
+  "athlete_kata",
+]);
+export const clipAddedByEnum = pgEnum("clip_added_by", ["coach", "athlete"]);
 
 // ── athletes ──────────────────────────────────────────────────────────────────
 export const athletes = pgTable("athletes", {
@@ -322,6 +354,95 @@ export const athleteNotes = pgTable("athlete_notes", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// ── clips (video assets; Cloudflare Stream) ───────────────────────────────────
+// Every asset is created requireSignedURLs=true; bytes never pass through the
+// server. This row holds only metadata + the Stream uid (assetId).
+export const clips = pgTable(
+  "clips",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    athleteId: uuid("athlete_id")
+      .notNull()
+      .references(() => athletes.id, { onDelete: "cascade" }),
+    kataId: uuid("kata_id").references(() => kata.id),
+    kind: clipKindEnum("kind").notNull().default("raw"),
+    // Self-reference: analysis/comparison clips point at their source raw clip.
+    // Deleting the source keeps the derived clip but drops the link (set null).
+    derivedFromClipId: uuid("derived_from_clip_id").references(
+      (): AnyPgColumn => clips.id,
+      { onDelete: "set null" },
+    ),
+    provider: clipProviderEnum("provider")
+      .notNull()
+      .default("cloudflare_stream"),
+    assetId: text("asset_id").notNull(),
+    status: clipStatusEnum("status").notNull().default("uploading"),
+    durationMs: integer("duration_ms"),
+    thumbnailUrl: text("thumbnail_url"),
+    visibility: clipVisibilityEnum("visibility").notNull().default("coach_only"),
+    // When the kata was performed, distinct from createdAt (upload time).
+    recordedAt: timestamp("recorded_at"),
+    label: text("label"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    index("clips_athlete_kind_idx").on(t.athleteId, t.kind),
+    index("clips_derived_from_idx").on(t.derivedFromClipId),
+  ],
+);
+
+// ── clip_attachments (polymorphic link from a clip to an existing context) ─────
+// contextId references a row in kata_scoring_cards / competition_entries /
+// athlete_kata (all uuid PKs). No FK because the target table is polymorphic.
+export const clipAttachments = pgTable(
+  "clip_attachments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    clipId: uuid("clip_id")
+      .notNull()
+      .references(() => clips.id, { onDelete: "cascade" }),
+    contextType: clipContextTypeEnum("context_type").notNull(),
+    contextId: uuid("context_id").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("clip_attachments_clip_context_idx").on(
+      t.clipId,
+      t.contextType,
+      t.contextId,
+    ),
+    index("clip_attachments_context_idx").on(t.contextType, t.contextId),
+  ],
+);
+
+// ── feedback_clips (the parent-meeting clip reel) ──────────────────────────────
+// Ordered set of clips curated onto a feedback gesprek; played in the meeting and
+// (once the form is completed + consent holds) exposed on the portal.
+export const feedbackClips = pgTable(
+  "feedback_clips",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    feedbackId: uuid("feedback_id")
+      .notNull()
+      .references(() => feedbackForms.id, { onDelete: "cascade" }),
+    clipId: uuid("clip_id")
+      .notNull()
+      .references(() => clips.id, { onDelete: "cascade" }),
+    sortOrder: integer("sort_order").notNull(),
+    caption: text("caption"),
+    addedBy: clipAddedByEnum("added_by").notNull().default("coach"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("feedback_clips_feedback_clip_idx").on(t.feedbackId, t.clipId),
+    index("feedback_clips_feedback_order_idx").on(t.feedbackId, t.sortOrder),
+  ],
+);
+
 // ── Relations ─────────────────────────────────────────────────────────────────
 export const athletesRelations = relations(athletes, ({ many }) => ({
   athleteKata: many(athleteKata),
@@ -329,6 +450,7 @@ export const athletesRelations = relations(athletes, ({ many }) => ({
   feedbackForms: many(feedbackForms),
   competitionEntries: many(competitionEntries),
   notes: many(athleteNotes),
+  clips: many(clips),
 }));
 
 export const athleteNotesRelations = relations(athleteNotes, ({ one }) => ({
@@ -342,6 +464,7 @@ export const kataRelations = relations(kata, ({ many }) => ({
   athleteKata: many(athleteKata),
   scoringCards: many(kataScoringCards),
   feedbackKataRatings: many(feedbackKataRatings),
+  clips: many(clips),
 }));
 
 export const athleteKataRelations = relations(athleteKata, ({ one }) => ({
@@ -374,6 +497,7 @@ export const feedbackFormsRelations = relations(
       references: [athletes.id],
     }),
     kataRatings: many(feedbackKataRatings),
+    feedbackClips: many(feedbackClips),
   }),
 );
 
@@ -408,3 +532,37 @@ export const competitionEntriesRelations = relations(
     }),
   }),
 );
+
+export const clipsRelations = relations(clips, ({ one, many }) => ({
+  athlete: one(athletes, {
+    fields: [clips.athleteId],
+    references: [athletes.id],
+  }),
+  kata: one(kata, { fields: [clips.kataId], references: [kata.id] }),
+  derivedFrom: one(clips, {
+    fields: [clips.derivedFromClipId],
+    references: [clips.id],
+    relationName: "clipDerivation",
+  }),
+  derivedClips: many(clips, { relationName: "clipDerivation" }),
+  attachments: many(clipAttachments),
+  feedbackClips: many(feedbackClips),
+}));
+
+export const clipAttachmentsRelations = relations(
+  clipAttachments,
+  ({ one }) => ({
+    clip: one(clips, {
+      fields: [clipAttachments.clipId],
+      references: [clips.id],
+    }),
+  }),
+);
+
+export const feedbackClipsRelations = relations(feedbackClips, ({ one }) => ({
+  feedback: one(feedbackForms, {
+    fields: [feedbackClips.feedbackId],
+    references: [feedbackForms.id],
+  }),
+  clip: one(clips, { fields: [feedbackClips.clipId], references: [clips.id] }),
+}));
