@@ -61,6 +61,18 @@ export const athletes = pgTable("athletes", {
   weightKg: integer("weight_kg"),
   notes: text("notes"),
   physicalNotes: text("physical_notes"),
+  // Contact + parental consent (AVG/GDPR). `contactEmail` is where prepare/portal
+  // links are sent — usually a parent for minors. Athletes under 16 are gated: no
+  // portal, no email until `parentalConsentAt` is recorded (consent given by the
+  // named parent). See features/athletes/consent.ts.
+  contactEmail: text("contact_email"),
+  // Parental consent is written ONLY by the public consent submit (consent-actions.ts),
+  // never by the coach. `consentToken` is a one-shot 7-day public link the parent uses
+  // to self-certify; it's cleared on submit and regenerated when the coach re-sends.
+  parentalConsentAt: timestamp("parental_consent_at"),
+  parentalConsentName: text("parental_consent_name"),
+  consentToken: text("consent_token").unique(),
+  consentTokenExpiresAt: timestamp("consent_token_expires_at"),
   viewToken: text("view_token")
     .notNull()
     .unique()
@@ -166,6 +178,9 @@ export const feedbackForms = pgTable("feedback_forms", {
   athleteOpenedAt: timestamp("athlete_opened_at"),
   athleteSubmittedAt: timestamp("athlete_submitted_at"),
   completedAt: timestamp("completed_at"),
+  // Last time a prepare-link invite/reminder was emailed — throttles the cron
+  // (one nudge per interval) and records manual sends. Null until first send.
+  lastReminderAt: timestamp("last_reminder_at"),
   // Side A — athlete self-assessment
   athleteProudOf: text("athlete_proud_of"),
   athleteHardestThing: text("athlete_hardest_thing"),

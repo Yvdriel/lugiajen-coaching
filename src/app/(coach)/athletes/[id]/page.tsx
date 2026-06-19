@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddNoteForm } from "@/components/athletes/add-note-form";
 import { RotateLinkButton } from "@/components/athletes/rotate-link-button";
+import { SendConsentButton } from "@/components/athletes/send-consent-button";
 import { ShareLinkButton } from "@/components/athletes/share-link-button";
 import { AthleteCompetitions } from "@/components/display/athlete-competitions";
 import { AthleteHeader } from "@/components/display/athlete-header";
@@ -16,6 +17,7 @@ import { AssignKataForm } from "@/components/kata/assign-kata-form";
 import { AthleteKataEditForm } from "@/components/kata/athlete-kata-edit-form";
 import { RemoveKataButton } from "@/components/kata/remove-kata-button";
 import { buttonVariants } from "@/components/ui/button";
+import { isConsentLinkValid, isPortalBlocked } from "@/features/athletes/consent";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { buildAthleteStats } from "@/lib/athlete-stats";
 import { calculateAge, getCategories } from "@/lib/categories";
@@ -33,7 +35,7 @@ import {
   getScoringSeriesByKata,
 } from "@/lib/queries/scoring";
 import { getLocale, getMessages } from "@/i18n/server";
-import { formatDateTime } from "@/i18n/format";
+import { formatDate, formatDateTime } from "@/i18n/format";
 
 const TABS = [
   "overview",
@@ -141,6 +143,43 @@ export default async function AthletePage({
           </>
         }
       />
+
+      {a.parentalConsentAt ? (
+        <p className="rounded-lg border border-emerald-600/40 bg-emerald-600/10 px-4 py-2 text-sm text-emerald-700 dark:text-emerald-400">
+          {nl.athlete.privacy.consentGivenOn}{" "}
+          {formatDate(a.parentalConsentAt, locale)}
+          {a.parentalConsentName
+            ? ` — ${nl.athlete.privacy.consentBy} ${a.parentalConsentName}`
+            : ""}
+        </p>
+      ) : isPortalBlocked(a) ? (
+        <div className="flex flex-col gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-0.5">
+            <p className="text-sm font-medium text-destructive">
+              {nl.athlete.privacy.portalBlocked}
+            </p>
+            {isConsentLinkValid(a) && a.consentTokenExpiresAt ? (
+              <p className="text-xs text-muted-foreground">
+                {nl.athlete.privacy.consentPending}{" "}
+                {formatDate(a.consentTokenExpiresAt, locale)}
+              </p>
+            ) : a.consentToken ? (
+              <p className="text-xs text-muted-foreground">
+                {nl.athlete.privacy.consentExpired}
+              </p>
+            ) : null}
+          </div>
+          <SendConsentButton
+            athleteId={a.id}
+            hasEmail={!!a.contactEmail}
+            resend={a.consentToken != null}
+          />
+        </div>
+      ) : !a.contactEmail ? (
+        <p className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground">
+          {nl.athlete.privacy.noContactEmail}
+        </p>
+      ) : null}
 
       <Tabs defaultValue={activeTab}>
         <TabsList>

@@ -146,6 +146,16 @@ export async function getAthleteByViewToken(token: string) {
   return a ?? null;
 }
 
+/** Resolve a public `consent_token` → athlete (parental-consent flow, UUID-guarded). */
+export async function getAthleteByConsentToken(token: string) {
+  if (!UUID_RE.test(token)) return null;
+  const [a] = await db
+    .select()
+    .from(athletes)
+    .where(eq(athletes.consentToken, token));
+  return a ?? null;
+}
+
 export async function getAthleteNotes(athleteId: string) {
   return db
     .select()

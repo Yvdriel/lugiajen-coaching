@@ -70,3 +70,9 @@ export const prepareRateLimiter = createInMemoryRateLimiter({
   limit: 20,
   windowMs: 60_000,
 });
+
+/** Limiter for the public parental-consent submit. 20 writes / 60 s. */
+export const consentRateLimiter = createInMemoryRateLimiter({
+  limit: 20,
+  windowMs: 60_000,
+});

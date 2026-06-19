@@ -4,11 +4,17 @@ import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { feedbackForms, feedbackKataRatings } from "@/db/schema";
+import { resolveRecipient } from "@/features/athletes/consent";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { sendCoachSubmittedNotice, sendPrepareInvite } from "@/lib/email/send";
+import { getAthleteById } from "@/lib/queries/athletes";
+import { getFeedbackById } from "@/lib/queries/feedback";
 import { getAthleteKata } from "@/lib/queries/kata";
 import { prepareRateLimiter } from "@/lib/rate-limit";
+import { nl } from "@/messages/nl";
 import { currentSeason, type FormType, isFormType, maxMeetingNumber } from "./form-type";
 import {
   type AthletePrepParsed,
@@ -285,9 +291,88 @@ export async function submitAthletePreparation(
     .where(eq(feedbackKataRatings.feedbackId, form.id));
   await insertKataRatings(form.id, ratings);
 
+  // Best-effort coach notification, after the response flushes — an email failure
+  // must never break the athlete's submit.
+  after(async () => {
+    try {
+      const athlete = await getAthleteById(form.athleteId);
+      if (!athlete) return;
+      await sendCoachSubmittedNotice({
+        athleteId: athlete.id,
+        athleteName: `${athlete.firstName} ${athlete.lastName}`,
+        feedbackId: form.id,
+        meetingNumber: form.meetingNumber,
+      });
+    } catch {
+      // swallow — notification is non-critical
+    }
+  });
+
   revalidatePath(`/feedback/prepare/${prepareToken}`);
   revalidatePath(`/athletes/${form.athleteId}`);
   return { ok: true };
+}
+
+/**
+ * Coach: email the prepare link to the athlete's contact (first send or reminder).
+ * Refuses when consent is missing for a minor or no contact email is on file, and
+ * stamps `lastReminderAt` so the cron won't double-nudge.
+ */
+export async function sendPrepareEmail(
+  _prev: FeedbackFormState,
+  formData: FormData,
+): Promise<FeedbackFormState> {
+  await requireSession();
+  const athleteId = String(formData.get("athleteId") ?? "");
+  const id = String(formData.get("id") ?? "");
+  if (!athleteId || !id) return { ok: false, message: "Onbekend gesprek." };
+
+  const [athlete, form] = await Promise.all([
+    getAthleteById(athleteId),
+    getFeedbackById(id),
+  ]);
+  if (!athlete || !form || form.athleteId !== athlete.id || !form.prepareToken) {
+    return { ok: false, message: "Onbekend gesprek." };
+  }
+  if (form.status !== "awaiting_athlete") {
+    return { ok: false, message: nl.feedback.status[form.status] };
+  }
+
+  const recipient = resolveRecipient(athlete);
+  if (!recipient.ok) {
+    return {
+      ok: false,
+      message:
+        recipient.reason === "consent"
+          ? nl.feedback.sendBlockedConsent
+          : nl.feedback.sendNoEmail,
+    };
+  }
+
+  const res = await sendPrepareInvite({
+    to: recipient.email,
+    athleteName: athlete.firstName,
+    prepareToken: form.prepareToken,
+    meetingNumber: form.meetingNumber,
+    formId: form.id,
+    isReminder: form.lastReminderAt != null,
+  });
+  if (!res.ok) {
+    return {
+      ok: false,
+      message:
+        res.error === "email-not-configured"
+          ? nl.feedback.emailNotConfigured
+          : nl.feedback.sendFailed,
+    };
+  }
+
+  await db
+    .update(feedbackForms)
+    .set({ lastReminderAt: new Date() })
+    .where(eq(feedbackForms.id, form.id));
+  revalidatePath(`/athletes/${athleteId}/feedback/${form.id}`);
+  return { ok: true, message: nl.feedback.linkSent };
 }
 
 /** PUBLIC: stamp the first-open time (set-once via the isNull guard). */

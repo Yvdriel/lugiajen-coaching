@@ -22,6 +22,7 @@ type Values = {
   weightKg: string;
   notes: string;
   physicalNotes: string;
+  contactEmail: string;
   isActive: boolean;
 };
 
@@ -37,6 +38,7 @@ const EMPTY: Values = {
   weightKg: "",
   notes: "",
   physicalNotes: "",
+  contactEmail: "",
   isActive: true,
 };
 
@@ -51,6 +53,8 @@ export type AthleteFormProps = {
   defaultValues?: Partial<Values>;
   athleteId?: string;
   submitLabel: string;
+  /** Pre-formatted, read-only consent record line (parent-set; coach can't edit). */
+  consentLine?: string;
 };
 
 export function AthleteForm({
@@ -58,6 +62,7 @@ export function AthleteForm({
   defaultValues,
   athleteId,
   submitLabel,
+  consentLine,
 }: AthleteFormProps) {
   const nl = useMessages();
   const [state, formAction, pending] = useActionState<
@@ -81,6 +86,7 @@ export function AthleteForm({
   }, [state, setError]);
 
   const f = nl.athlete.fields;
+  const p = nl.athlete.privacy;
 
   return (
     <form action={formAction} className="flex flex-col gap-5" noValidate>
@@ -127,6 +133,21 @@ export function AthleteForm({
         <Textarea rows={3} {...register("physicalNotes")} />
       </Field>
 
+      <fieldset className="flex flex-col gap-4 rounded-lg border border-border p-4">
+        <legend className="px-1 text-sm font-medium">{p.section}</legend>
+        <Field
+          label={p.contactEmail}
+          error={errors.contactEmail?.message}
+          hint={p.contactEmailHint}
+        >
+          <Input type="email" {...register("contactEmail")} />
+        </Field>
+        {/* Consent is parent-set (AVG) — shown read-only, never editable here. */}
+        <p className="text-xs text-muted-foreground">
+          {consentLine ?? p.consentNotGiven}
+        </p>
+      </fieldset>
+
       <label className="flex w-fit items-center gap-2 text-sm">
         <input type="checkbox" {...register("isActive")} />
         {f.isActive}
@@ -154,16 +175,19 @@ export function AthleteForm({
 function Field({
   label,
   error,
+  hint,
   children,
 }: {
   label: string;
   error?: string;
+  hint?: string;
   children: ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
       <Label>{label}</Label>
       {children}
+      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>
   );

@@ -10,12 +10,14 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "test": "vitest run",
+    "email:dev": "email dev --dir src/lib/email/templates",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "SEED=1 tsx src/db/seed.ts",
-    "db:verify": "tsx src/db/verify.ts"
+    "db:verify": "tsx src/db/verify.ts",
+    "db:set-password": "tsx src/db/set-password.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -29,6 +31,7 @@
     "@base-ui/react": "^1.5.0",
     "@hookform/resolvers": "^5.4.0",
     "@neondatabase/serverless": "^1.1.0",
+    "@react-email/components": "^1.0.12",
     "@react-pdf/renderer": "^4.5.1",
     "better-auth": "^1.6.18",
     "class-variance-authority": "^0.7.1",
@@ -40,6 +43,7 @@
     "react-dom": "19.2.4",
     "react-hook-form": "^7.79.0",
     "recharts": "3.8.0",
+    "resend": "^6.14.0",
     "shadcn": "^4.11.0",
     "tailwind-merge": "^3.6.0",
     "tw-animate-css": "^1.4.0",
@@ -62,6 +66,7 @@
     "eslint-config-next": "16.2.9",
     "jsdom": "^29.1.1",
     "prettier": "^3.8.4",
+    "react-email": "^6.6.3",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^5",

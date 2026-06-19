@@ -1,4 +1,5 @@
 import { createElement } from "react";
+import { isPortalBlocked } from "@/features/athletes/consent";
 import { getMessages } from "@/i18n/server";
 import { AthleteDocument } from "@/lib/pdf/athlete-document";
 import { pdfResponse, renderPdf, safeName } from "@/lib/pdf/http";
@@ -16,7 +17,10 @@ export async function GET(
 ) {
   const { token } = await params;
   const athlete = await getAthleteByViewToken(token);
-  if (!athlete) return new Response("Not found", { status: 404 });
+  // 404 on miss OR on a consent-blocked minor (mirror the portal gate).
+  if (!athlete || isPortalBlocked(athlete)) {
+    return new Response("Not found", { status: 404 });
+  }
 
   const [{ age, categories, stats }, m] = await Promise.all([
     loadOnePager(athlete),

@@ -25,6 +25,12 @@ export const athleteSchema = z.object({
   weightKg: optionalInt,
   notes: z.preprocess(emptyToUndef, z.string().optional()),
   physicalNotes: z.preprocess(emptyToUndef, z.string().optional()),
+  // Contact email only. Parental consent is NOT coach-editable — it's collected
+  // from the parent via the public consent link (see consent-actions.ts).
+  contactEmail: z.preprocess(
+    emptyToUndef,
+    z.string().email("Ongeldig e-mailadres.").optional(),
+  ),
   isActive: z.preprocess(
     (v) => v === "on" || v === true || v === "true",
     z.boolean(),
