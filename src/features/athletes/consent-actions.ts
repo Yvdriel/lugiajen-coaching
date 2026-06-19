@@ -24,8 +24,10 @@ const fullNameSchema = z.string().trim().min(2, "Vul je volledige naam in.");
 /**
  * PUBLIC (no session): the parent self-certifies consent. Bound to the token by the
  * page (`submitConsent.bind(null, token)`), so the token is server-controlled. Only
- * an unexpired, not-yet-consented token is accepted; the update clears the token so
- * the link is one-shot. Recording consent here is the ONLY way consent is ever set.
+ * an unexpired, not-yet-consented token is accepted. The token is deliberately kept
+ * after recording consent (so the post-action page re-render lands on the thank-you,
+ * not "link invalid"); one-shot is enforced by the `parentalConsentAt IS NULL` write
+ * guard below. Recording consent here is the ONLY way consent is ever set.
  */
 export async function submitConsent(
   token: string,

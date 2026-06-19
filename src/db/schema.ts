@@ -67,8 +67,10 @@ export const athletes = pgTable("athletes", {
   // named parent). See features/athletes/consent.ts.
   contactEmail: text("contact_email"),
   // Parental consent is written ONLY by the public consent submit (consent-actions.ts),
-  // never by the coach. `consentToken` is a one-shot 7-day public link the parent uses
-  // to self-certify; it's cleared on submit and regenerated when the coach re-sends.
+  // never by the coach. `consentToken` is a 7-day public link the parent uses to
+  // self-certify; it's kept after submit (so the page can show the thank-you) and
+  // regenerated when the coach re-sends. One-shot is enforced by the parental_consent_at
+  // guard, not by clearing the token.
   parentalConsentAt: timestamp("parental_consent_at"),
   parentalConsentName: text("parental_consent_name"),
   consentToken: text("consent_token").unique(),

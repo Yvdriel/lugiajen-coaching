@@ -3,8 +3,9 @@ import { calculateAge } from "@/lib/categories";
 /**
  * Parental-consent gate (AVG/GDPR). Dutch law requires parental consent to process
  * a child's data below 16, so the public portal and any outbound email are blocked
- * for under-16 athletes until the coach records consent (date + parent name) on the
- * edit form. Pure + structurally typed so it unit-tests without a db row.
+ * for under-16 athletes until consent is recorded. Consent is set only when a parent
+ * submits the public consent link (consent-actions.ts) — the coach can request it,
+ * never set it. Pure + structurally typed so it unit-tests without a db row.
  */
 export type ConsentAthlete = {
   dateOfBirth: string;
