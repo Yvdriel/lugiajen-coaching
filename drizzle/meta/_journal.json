@@ -50,6 +50,13 @@
       "when": 1781866049930,
       "tag": "0006_normal_starbolt",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1781899747632,
+      "tag": "0007_mute_namora",
+      "breakpoints": true
     }
   ]
 }
