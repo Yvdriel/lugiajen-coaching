@@ -24,6 +24,16 @@ const EnvSchema = z.object({
   EMAIL_FROM: z.string().min(1).optional(), // e.g. "Lu Gia Jen <noreply@…>"
   // Shared secret guarding the cron route (Authorization: Bearer …).
   CRON_SECRET: z.string().min(1).optional(),
+  // Cloudflare Stream (video). Optional so the app/tests boot without them; the
+  // Stream client (features/clips/lib/stream.ts) asserts the ones it needs at
+  // call time. API token scope: Stream:Edit. SIGNING_KEY_PEM is base64-encoded
+  // (decode before signing). WEBHOOK_SECRET is consumed by the Session 2 webhook.
+  CLOUDFLARE_ACCOUNT_ID: z.string().min(1).optional(),
+  CLOUDFLARE_STREAM_API_TOKEN: z.string().min(1).optional(),
+  CLOUDFLARE_STREAM_CUSTOMER_SUBDOMAIN: z.string().min(1).optional(),
+  CLOUDFLARE_STREAM_SIGNING_KEY_ID: z.string().min(1).optional(),
+  CLOUDFLARE_STREAM_SIGNING_KEY_PEM: z.string().min(1).optional(),
+  CLOUDFLARE_STREAM_WEBHOOK_SECRET: z.string().min(1).optional(),
 });
 
 const parsed = EnvSchema.safeParse(process.env);

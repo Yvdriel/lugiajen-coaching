@@ -61,8 +61,7 @@ export const en: Messages = {
     linkCopied: "Link copied",
     copyPrompt: "Copy the link:",
     rotateLink: "New link",
-    rotateConfirm:
-      "Create a new share link? The old link will stop working.",
+    rotateConfirm: "Create a new share link? The old link will stop working.",
     active: "Active",
     inactive: "Inactive",
     fields: {
@@ -87,6 +86,7 @@ export const en: Messages = {
       feedback: "Feedback",
       competitions: "Competitions",
       notes: "Notes",
+      clips: "Video",
     },
     overview: {
       physical: "Physical profile",
@@ -252,7 +252,8 @@ export const en: Messages = {
     actionItems: "Action items",
     save: "Save meeting",
     kataSelfRating: "My kata — honest self-score",
-    kataSelfRatingHint: "Give each kata an honest score (1-10) and a short note.",
+    kataSelfRatingHint:
+      "Give each kata an honest score (1-10) and a short note.",
     kataSelfScore: "Score (1-10)",
     kataSelfNotes: "Note",
     // Prepared-flow (coach side)
@@ -499,6 +500,40 @@ export const en: Messages = {
       body: "To track your child's development, Lu Gia Jen records some data. Because your child is under 16, your consent is required (GDPR). Click below, read the explanation and confirm.",
       button: "Give consent",
       fallback: "Button not working? Open this link:",
+    },
+  },
+  clips: {
+    title: "Video",
+    empty: "No videos yet.",
+    upload: "Upload video",
+    uploadTitle: "New video",
+    file: "Video file",
+    kata: "Kata (optional)",
+    kataNone: "No kata",
+    label: "Label (optional)",
+    labelPlaceholder: "E.g. training 12 June",
+    recordedAt: "Recorded on (optional)",
+    uploading: "Uploading…",
+    processingHint:
+      "Cloudflare is processing the video. This can take a while.",
+    syncStatus: "Refresh status",
+    view: "View",
+    delete: "Delete",
+    confirmDelete: "Delete this video? This cannot be undone.",
+    notReady: "Video is not ready to play yet.",
+    uploadFailed: "Upload failed. Please try again.",
+    back: "Back",
+    kind: {
+      raw: "Original",
+      analysis: "Analysis",
+      comparison: "Comparison",
+      still: "Still",
+    },
+    status: {
+      uploading: "Uploading",
+      processing: "Processing",
+      ready: "Ready",
+      error: "Failed",
     },
   },
 };

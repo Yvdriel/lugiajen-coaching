@@ -85,6 +85,7 @@ export const nl = {
       feedback: "Feedback",
       competitions: "Wedstrijden",
       notes: "Notities",
+      clips: "Video",
     },
     overview: {
       physical: "Fysiek profiel",
@@ -118,8 +119,10 @@ export const nl = {
       contactEmail: "Contact e-mail",
       contactEmailHint:
         "Waar voorbereidings- en portaal-links naartoe gaan (vaak een ouder).",
-      portalBlocked: "Portaal geblokkeerd — ouderlijke toestemming vereist (AVG).",
-      noContactEmail: "Geen contact-e-mail — links kunnen niet verstuurd worden.",
+      portalBlocked:
+        "Portaal geblokkeerd — ouderlijke toestemming vereist (AVG).",
+      noContactEmail:
+        "Geen contact-e-mail — links kunnen niet verstuurd worden.",
       // Parental consent (coach-facing — coach can only request, never set, consent).
       sendConsentEmail: "Verstuur AVG-toestemmingsmail",
       consentDialogTitle: "AVG-toestemming aanvragen",
@@ -251,7 +254,8 @@ export const nl = {
     actionItems: "Actiepunten",
     save: "Gesprek opslaan",
     kataSelfRating: "Mijn kata — eerlijke zelfscore",
-    kataSelfRatingHint: "Geef per kata een eerlijke score (1-10) en korte notitie.",
+    kataSelfRatingHint:
+      "Geef per kata een eerlijke score (1-10) en korte notitie.",
     kataSelfScore: "Score (1-10)",
     kataSelfNotes: "Notitie",
     // Prepared-flow (coach side)
@@ -273,7 +277,8 @@ export const nl = {
     sendFailed: "Versturen mislukt. Probeer het opnieuw.",
     emailNotConfigured: "E-mail is niet geconfigureerd.",
     deleteDraft: "Concept verwijderen",
-    confirmDeleteDraft: "Concept verwijderen? Dit kan niet ongedaan worden gemaakt.",
+    confirmDeleteDraft:
+      "Concept verwijderen? Dit kan niet ongedaan worden gemaakt.",
     awaitingAthlete: "Concept — wacht op atleet",
     openedAt: "Geopend",
     submittedAt: "Ingevuld",
@@ -459,7 +464,8 @@ export const nl = {
       subject: "Voorbereiding ingevuld",
       preview: "Een atleet heeft het voorbereidingsformulier ingevuld.",
       heading: "Voorbereiding ingevuld",
-      intro: "heeft het voorbereidingsformulier ingevuld en is klaar voor het gesprek.",
+      intro:
+        "heeft het voorbereidingsformulier ingevuld en is klaar voor het gesprek.",
       meetingLabel: "Gesprek",
       button: "Bekijk antwoorden",
     },
@@ -468,8 +474,7 @@ export const nl = {
   consent: {
     page: {
       title: "Toestemming ouder/verzorger",
-      intro:
-        "Je geeft toestemming voor het verwerken van de gegevens van",
+      intro: "Je geeft toestemming voor het verwerken van de gegevens van",
       dataTitle: "Welke gegevens",
       data: "Naam, geboortedatum, bandgraad, kata-beoordelingen, wedstrijdresultaten en feedback van trainingsgesprekken.",
       whyTitle: "Waarom",
@@ -504,6 +509,40 @@ export const nl = {
       body: "Voor het volgen van de ontwikkeling van je kind legt Lu Gia Jen gegevens vast. Omdat je kind jonger is dan 16, is jouw toestemming nodig (AVG). Klik hieronder, lees de uitleg en bevestig.",
       button: "Geef toestemming",
       fallback: "Werkt de knop niet? Open deze link:",
+    },
+  },
+  clips: {
+    title: "Video",
+    empty: "Nog geen video's.",
+    upload: "Video uploaden",
+    uploadTitle: "Nieuwe video",
+    file: "Videobestand",
+    kata: "Kata (optioneel)",
+    kataNone: "Geen kata",
+    label: "Label (optioneel)",
+    labelPlaceholder: "Bijv. training 12 juni",
+    recordedAt: "Opgenomen op (optioneel)",
+    uploading: "Uploaden…",
+    processingHint: "Video wordt verwerkt door Cloudflare. Dit kan even duren.",
+    syncStatus: "Status verversen",
+    view: "Bekijken",
+    delete: "Verwijderen",
+    confirmDelete:
+      "Deze video verwijderen? Dit kan niet ongedaan worden gemaakt.",
+    notReady: "Video is nog niet klaar om af te spelen.",
+    uploadFailed: "Uploaden mislukt. Probeer het opnieuw.",
+    back: "Terug",
+    kind: {
+      raw: "Origineel",
+      analysis: "Analyse",
+      comparison: "Vergelijking",
+      still: "Beeld",
+    },
+    status: {
+      uploading: "Uploaden",
+      processing: "Verwerken",
+      ready: "Klaar",
+      error: "Mislukt",
     },
   },
 } as const;

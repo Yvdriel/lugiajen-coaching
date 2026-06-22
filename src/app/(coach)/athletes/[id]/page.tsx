@@ -13,15 +13,20 @@ import {
 } from "@/components/display/kata-repertoire";
 import { ScoringHistoryPanel } from "@/components/display/scoring-history-panel";
 import { StatsOverview } from "@/components/display/stats-overview";
+import { ClipsTab } from "@/components/clips/clips-tab";
 import { AssignKataForm } from "@/components/kata/assign-kata-form";
 import { AthleteKataEditForm } from "@/components/kata/athlete-kata-edit-form";
 import { RemoveKataButton } from "@/components/kata/remove-kata-button";
 import { buttonVariants } from "@/components/ui/button";
-import { isConsentLinkValid, isPortalBlocked } from "@/features/athletes/consent";
+import {
+  isConsentLinkValid,
+  isPortalBlocked,
+} from "@/features/athletes/consent";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { buildAthleteStats } from "@/lib/athlete-stats";
 import { calculateAge, getCategories } from "@/lib/categories";
 import { getAthleteById, getAthleteNotes } from "@/lib/queries/athletes";
+import { getAthleteClips } from "@/lib/queries/clips";
 import { getAthleteCompetitions } from "@/lib/queries/competitions";
 import { getFeedbackForms } from "@/lib/queries/feedback";
 import {
@@ -44,6 +49,7 @@ const TABS = [
   "feedback",
   "competitions",
   "notes",
+  "clips",
 ] as const;
 type Tab = (typeof TABS)[number];
 
@@ -52,7 +58,11 @@ export default async function AthletePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string; scoreKata?: string; editKata?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    scoreKata?: string;
+    editKata?: string;
+  }>;
 }) {
   const nl = await getMessages();
   const locale = await getLocale();
@@ -72,6 +82,7 @@ export default async function AthletePage({
     feedback,
     competitions,
     kataLib,
+    clips,
   ] = await Promise.all([
     getAthleteNotes(id),
     getAthleteKata(id),
@@ -81,6 +92,7 @@ export default async function AthletePage({
     getFeedbackForms(id),
     getAthleteCompetitions(id),
     getKataLibrary(),
+    getAthleteClips(id),
   ]);
   const kataNames = new Map(kataLib.map((k) => [k.id, k.name]));
 
@@ -103,7 +115,7 @@ export default async function AthletePage({
   }));
 
   const editItem = editKata
-    ? repertoire.find((r) => r.id === editKata) ?? null
+    ? (repertoire.find((r) => r.id === editKata) ?? null)
     : null;
 
   // Scorekaarten tab: which kata's history to show.
@@ -111,7 +123,7 @@ export default async function AthletePage({
   const selectedKataId =
     scoreKata && repertoireKataIds.includes(scoreKata)
       ? scoreKata
-      : repertoireKataIds[0] ?? null;
+      : (repertoireKataIds[0] ?? null);
   const history = selectedKataId
     ? await getScoringHistory(id, selectedKataId)
     : [];
@@ -189,6 +201,7 @@ export default async function AthletePage({
           <TabsTrigger value="feedback">{t.feedback}</TabsTrigger>
           <TabsTrigger value="competitions">{t.competitions}</TabsTrigger>
           <TabsTrigger value="notes">{t.notes}</TabsTrigger>
+          <TabsTrigger value="clips">{t.clips}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="pt-4">
@@ -228,7 +241,10 @@ export default async function AthletePage({
                 <>
                   <Link
                     href={`/athletes/${a.id}/kata/${item.kataId}/score`}
-                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                    className={buttonVariants({
+                      variant: "outline",
+                      size: "sm",
+                    })}
                   >
                     {nl.kata.assess}
                   </Link>
@@ -260,7 +276,8 @@ export default async function AthletePage({
                     key={r.kataId}
                     href={`/athletes/${a.id}?tab=scoring&scoreKata=${r.kataId}`}
                     className={buttonVariants({
-                      variant: r.kataId === selectedKataId ? "default" : "outline",
+                      variant:
+                        r.kataId === selectedKataId ? "default" : "outline",
                       size: "sm",
                     })}
                   >
@@ -282,7 +299,10 @@ export default async function AthletePage({
                       href={`/api/athletes/${a.id}/scoring/${selectedKataId}/pdf`}
                       target="_blank"
                       rel="noopener"
-                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                      className={buttonVariants({
+                        variant: "outline",
+                        size: "sm",
+                      })}
                     >
                       {nl.common.pdf}
                     </a>
@@ -320,6 +340,17 @@ export default async function AthletePage({
         </TabsContent>
         <TabsContent value="competitions" className="pt-4">
           <AthleteCompetitions rows={competitions} kataNames={kataNames} />
+        </TabsContent>
+
+        <TabsContent value="clips" className="pt-4">
+          <ClipsTab
+            athleteId={a.id}
+            clips={clips}
+            kataOptions={repertoire.map((r) => ({
+              id: r.kataId,
+              name: r.kataName,
+            }))}
+          />
         </TabsContent>
 
         <TabsContent value="notes" className="pt-4">
