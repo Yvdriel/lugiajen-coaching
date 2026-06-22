@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { clips } from "@/db/schema";
 import { auth } from "@/lib/auth";
@@ -12,21 +12,39 @@ import { env } from "@/lib/env";
 export const runtime = "nodejs";
 
 const CF_API_BASE = "https://api.cloudflare.com/client/v4";
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Pull our clips row id out of the tus Upload-Metadata (`key b64value,…`).
+// Pull our clips row id out of the tus Upload-Metadata (`key b64value,…`). The
+// value is client-controlled, so only accept a well-formed UUID.
 function parseClipId(uploadMetadata: string | null): string | null {
   if (!uploadMetadata) return null;
   for (const pair of uploadMetadata.split(",")) {
     const [key, value] = pair.trim().split(" ");
     if (key === "clipid" && value) {
       try {
-        return Buffer.from(value, "base64").toString("utf8");
+        const decoded = Buffer.from(value, "base64").toString("utf8");
+        return UUID_RE.test(decoded) ? decoded : null;
       } catch {
         return null;
       }
     }
   }
   return null;
+}
+
+// Privacy is set at creation time, so we never trust the client to mark the asset
+// private. Force `requiresignedurls` into the forwarded metadata regardless of
+// what the browser sent.
+function withRequireSignedUrls(uploadMetadata: string | null): string {
+  const parts = (uploadMetadata ?? "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (!parts.some((p) => p.split(" ")[0] === "requiresignedurls")) {
+    parts.push("requiresignedurls");
+  }
+  return parts.join(",");
 }
 
 export async function POST(req: Request): Promise<Response> {
@@ -41,6 +59,7 @@ export async function POST(req: Request): Promise<Response> {
 
   const uploadLength = req.headers.get("Upload-Length");
   const uploadMetadata = req.headers.get("Upload-Metadata");
+  const forwardedMetadata = withRequireSignedUrls(uploadMetadata);
 
   // Create the resumable upload session on Cloudflare (headers only, no body).
   const cfRes = await fetch(
@@ -51,7 +70,7 @@ export async function POST(req: Request): Promise<Response> {
         Authorization: `Bearer ${apiToken}`,
         "Tus-Resumable": "1.0.0",
         ...(uploadLength ? { "Upload-Length": uploadLength } : {}),
-        ...(uploadMetadata ? { "Upload-Metadata": uploadMetadata } : {}),
+        "Upload-Metadata": forwardedMetadata,
       },
     },
   );
@@ -60,14 +79,15 @@ export async function POST(req: Request): Promise<Response> {
   const mediaId = cfRes.headers.get("stream-media-id");
 
   // Record the real Stream uid on our clips row (best-effort; the webhook also
-  // correlates via meta.clipid).
+  // correlates via meta.clipid). Guard on status='uploading' so a forged/replayed
+  // clipid can't re-point an already-linked clip's assetId.
   const clipId = parseClipId(uploadMetadata);
   if (mediaId && clipId) {
     try {
       await db
         .update(clips)
         .set({ assetId: mediaId })
-        .where(eq(clips.id, clipId));
+        .where(and(eq(clips.id, clipId), eq(clips.status, "uploading")));
     } catch {
       // Non-fatal — the webhook will still match on meta.clipid.
     }

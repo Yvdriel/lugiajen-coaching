@@ -13,6 +13,8 @@ export type AthleteClipRow = ClipRow & { kataName: string | null };
 
 /** All of an athlete's clips, newest first, with the kata name when set. */
 export function getAthleteClips(athleteId: string): Promise<AthleteClipRow[]> {
+  // Treat a malformed id as a miss (avoids a Postgres uuid-cast 500).
+  if (!UUID_RE.test(athleteId)) return Promise.resolve([]);
   return db
     .select({
       id: clips.id,
