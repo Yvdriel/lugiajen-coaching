@@ -69,7 +69,9 @@ async function cfFetch<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       // body wasn't JSON — status alone is enough
     }
-    throw new Error(`Cloudflare Stream request failed (${res.status})${detail}`);
+    throw new Error(
+      `Cloudflare Stream request failed (${res.status})${detail}`,
+    );
   }
   const body = (await res.json()) as CfEnvelope<T>;
   if (!body.success) {
@@ -153,13 +155,52 @@ export async function getDownloadStatus(
   return result.default ?? null;
 }
 
+export type VideoDetails = {
+  state: string; // "ready" | "inprogress" | "queued" | "error" | "pendingupload"
+  readyToStream: boolean;
+  durationSeconds: number | null;
+  thumbnail: string | null;
+};
+
+/**
+ * Current processing state of a video. Used by the status-sync fallback so a coach
+ * can flip a clip to ready locally without a reachable webhook.
+ */
+export async function getVideoDetails(uid: string): Promise<VideoDetails> {
+  const result = await cfFetch<{
+    status?: { state?: string };
+    readyToStream?: boolean;
+    duration?: number;
+    thumbnail?: string;
+  }>(`/stream/${uid}`, { method: "GET" });
+  return {
+    state: result.status?.state ?? "unknown",
+    readyToStream: result.readyToStream ?? false,
+    // Cloudflare reports -1 until the duration is known.
+    durationSeconds:
+      typeof result.duration === "number" && result.duration >= 0
+        ? result.duration
+        : null,
+    thumbnail: result.thumbnail ?? null,
+  };
+}
+
 /** Permanently delete a Stream asset. */
 export async function deleteAsset(uid: string): Promise<void> {
   await cfFetch<unknown>(`/stream/${uid}`, { method: "DELETE" });
 }
 
 function customerBase(): string {
-  return `https://${requireSubdomain()}.cloudflarestream.com`;
+  // Accept either the bare code ("customer-xxxx") or the full host
+  // ("customer-xxxx.cloudflarestream.com", optionally with a scheme).
+  const raw = requireSubdomain()
+    .trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/+$/, "");
+  const host = raw.endsWith(".cloudflarestream.com")
+    ? raw
+    : `${raw}.cloudflarestream.com`;
+  return `https://${host}`;
 }
 
 /** Thumbnail JPEG for a video uid. */
