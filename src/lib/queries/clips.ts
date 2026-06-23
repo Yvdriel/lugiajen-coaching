@@ -11,29 +11,33 @@ export type ClipRow = typeof clips.$inferSelect;
 
 export type AthleteClipRow = ClipRow & { kataName: string | null };
 
+// One canonical projection (full clip row + joined kata name), shared by every
+// clip read so the column list lives in exactly one place.
+const clipColumns = {
+  id: clips.id,
+  athleteId: clips.athleteId,
+  kataId: clips.kataId,
+  kind: clips.kind,
+  derivedFromClipId: clips.derivedFromClipId,
+  provider: clips.provider,
+  assetId: clips.assetId,
+  status: clips.status,
+  durationMs: clips.durationMs,
+  thumbnailUrl: clips.thumbnailUrl,
+  visibility: clips.visibility,
+  recordedAt: clips.recordedAt,
+  label: clips.label,
+  createdAt: clips.createdAt,
+  updatedAt: clips.updatedAt,
+  kataName: kata.name,
+} as const;
+
 /** All of an athlete's clips, newest first, with the kata name when set. */
 export function getAthleteClips(athleteId: string): Promise<AthleteClipRow[]> {
   // Treat a malformed id as a miss (avoids a Postgres uuid-cast 500).
   if (!UUID_RE.test(athleteId)) return Promise.resolve([]);
   return db
-    .select({
-      id: clips.id,
-      athleteId: clips.athleteId,
-      kataId: clips.kataId,
-      kind: clips.kind,
-      derivedFromClipId: clips.derivedFromClipId,
-      provider: clips.provider,
-      assetId: clips.assetId,
-      status: clips.status,
-      durationMs: clips.durationMs,
-      thumbnailUrl: clips.thumbnailUrl,
-      visibility: clips.visibility,
-      recordedAt: clips.recordedAt,
-      label: clips.label,
-      createdAt: clips.createdAt,
-      updatedAt: clips.updatedAt,
-      kataName: kata.name,
-    })
+    .select(clipColumns)
     .from(clips)
     .leftJoin(kata, eq(clips.kataId, kata.id))
     .where(eq(clips.athleteId, athleteId))
@@ -46,26 +50,22 @@ export async function getClipById(
 ): Promise<AthleteClipRow | null> {
   if (!UUID_RE.test(clipId)) return null;
   const [row] = await db
-    .select({
-      id: clips.id,
-      athleteId: clips.athleteId,
-      kataId: clips.kataId,
-      kind: clips.kind,
-      derivedFromClipId: clips.derivedFromClipId,
-      provider: clips.provider,
-      assetId: clips.assetId,
-      status: clips.status,
-      durationMs: clips.durationMs,
-      thumbnailUrl: clips.thumbnailUrl,
-      visibility: clips.visibility,
-      recordedAt: clips.recordedAt,
-      label: clips.label,
-      createdAt: clips.createdAt,
-      updatedAt: clips.updatedAt,
-      kataName: kata.name,
-    })
+    .select(clipColumns)
     .from(clips)
     .leftJoin(kata, eq(clips.kataId, kata.id))
     .where(eq(clips.id, clipId));
   return row ?? null;
+}
+
+/** The analysis/comparison clips derived from a source clip, newest first. */
+export function getDerivedClips(
+  sourceClipId: string,
+): Promise<AthleteClipRow[]> {
+  if (!UUID_RE.test(sourceClipId)) return Promise.resolve([]);
+  return db
+    .select(clipColumns)
+    .from(clips)
+    .leftJoin(kata, eq(clips.kataId, kata.id))
+    .where(eq(clips.derivedFromClipId, sourceClipId))
+    .orderBy(desc(clips.createdAt));
 }

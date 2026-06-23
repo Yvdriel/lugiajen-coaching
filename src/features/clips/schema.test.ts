@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { clipUploadSchema } from "./schema";
 
 const UID = "11111111-1111-1111-1111-111111111111";
+const UID2 = "22222222-2222-2222-2222-222222222222";
 
 describe("clipUploadSchema", () => {
   it("accepts a valid athleteId with optional fields omitted", () => {
@@ -44,6 +45,61 @@ describe("clipUploadSchema", () => {
     expect(
       clipUploadSchema.safeParse({ athleteId: UID, recordedAt: "22-06-2026" })
         .success,
+    ).toBe(false);
+  });
+
+  it("defaults to a raw clip when kind/source are omitted", () => {
+    const r = clipUploadSchema.safeParse({ athleteId: UID });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.kind).toBeUndefined();
+      expect(r.data.derivedFromClipId).toBeUndefined();
+    }
+  });
+
+  it("stores kind + derivedFromClipId for an analysis clip", () => {
+    const r = clipUploadSchema.safeParse({
+      athleteId: UID,
+      kind: "analysis",
+      derivedFromClipId: UID2,
+    });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.kind).toBe("analysis");
+      expect(r.data.derivedFromClipId).toBe(UID2);
+    }
+  });
+
+  it("accepts a comparison clip derived from a source", () => {
+    expect(
+      clipUploadSchema.safeParse({
+        athleteId: UID,
+        kind: "comparison",
+        derivedFromClipId: UID2,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects a derived kind without a source clip", () => {
+    expect(
+      clipUploadSchema.safeParse({ athleteId: UID, kind: "analysis" }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a source clip without a derived kind", () => {
+    expect(
+      clipUploadSchema.safeParse({ athleteId: UID, derivedFromClipId: UID2 })
+        .success,
+    ).toBe(false);
+  });
+
+  it("rejects a raw kind paired with a source clip", () => {
+    expect(
+      clipUploadSchema.safeParse({
+        athleteId: UID,
+        kind: "raw",
+        derivedFromClipId: UID2,
+      }).success,
     ).toBe(false);
   });
 });
