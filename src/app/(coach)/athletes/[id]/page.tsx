@@ -28,7 +28,10 @@ import { calculateAge, getCategories } from "@/lib/categories";
 import { getAthleteById, getAthleteNotes } from "@/lib/queries/athletes";
 import { getAthleteClips } from "@/lib/queries/clips";
 import { getAthleteCompetitions } from "@/lib/queries/competitions";
-import { getFeedbackForms } from "@/lib/queries/feedback";
+import {
+  getFeedbackActionItems,
+  getFeedbackForms,
+} from "@/lib/queries/feedback";
 import {
   getAthleteKata,
   getKataLibrary,
@@ -95,6 +98,10 @@ export default async function AthletePage({
     getAthleteClips(id),
   ]);
   const kataNames = new Map(kataLib.map((k) => [k.id, k.name]));
+  // Latest meeting's action items (rows now) feed the focus-points panel.
+  const latestActions = (
+    await getFeedbackActionItems(feedback[0]?.id ?? "")
+  ).map((it) => it.text);
 
   // Overzicht stats — assembled from already-loaded rows (convention 4, no re-query).
   const stats = buildAthleteStats({
@@ -103,6 +110,7 @@ export default async function AthletePage({
     latestCards,
     feedback,
     kataNames,
+    latestActions,
   });
 
   const lastDateByKata = new Map(

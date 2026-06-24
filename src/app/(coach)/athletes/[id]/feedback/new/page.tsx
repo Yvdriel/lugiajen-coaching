@@ -14,6 +14,7 @@ import {
   isFormType,
   recommendedFormType,
 } from "@/features/feedback/form-type";
+import { loadReview } from "@/features/feedback/review";
 import {
   blankFeedbackValues,
   kataRatingValues,
@@ -46,12 +47,16 @@ export default async function NewFeedbackPage({
   const showChoice = prepare !== "0";
   const today = new Date().toISOString().slice(0, 10);
   const repertoire = kata.map((k) => ({ kataId: k.kataId, kataName: k.kataName }));
+  // Review panel only renders on the in-person form (the prepared flow reviews via
+  // the athlete prepare link first). No current meeting yet → pass null.
+  const review = showChoice ? undefined : await loadReview(a.id, null);
   const props = {
     athleteId: a.id,
     defaultValues: {
       ...blankFeedbackValues(today, currentSeason()),
       ...kataRatingValues(repertoire),
     },
+    review,
     action: createFeedback,
     submitLabel: nl.feedback.save,
   };

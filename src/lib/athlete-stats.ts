@@ -98,6 +98,8 @@ export type AthleteStatsInput = {
   latestCards: ScoringCardRow[];
   feedback: FeedbackRow[]; // newest meeting first
   kataNames: Map<string, string>;
+  // Action-item texts of the latest meeting (action items are rows now, not columns).
+  latestActions?: string[];
 };
 
 export function buildAthleteStats({
@@ -106,6 +108,7 @@ export function buildAthleteStats({
   latestCards,
   feedback,
   kataNames,
+  latestActions = [],
 }: AthleteStatsInput): AthleteStats {
   const summary = summarizeAthleteCompetitions(
     competitions.map((r) => ({
@@ -128,9 +131,7 @@ export function buildAthleteStats({
   // latest scoring cards' priority improvements; feedback-first, deduped.
   const focusPoints = collect(
     latest?.coachDevelopmentArea,
-    latest?.action1,
-    latest?.action2,
-    latest?.action3,
+    ...latestActions,
     ...latestCards.map((c) => c.priorityImprovements),
   );
 

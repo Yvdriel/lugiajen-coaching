@@ -17,13 +17,16 @@ import { buttonVariants } from "@/components/ui/button";
 import { resolveRecipient } from "@/features/athletes/consent";
 import { completeFeedback, updateFeedback } from "@/features/feedback/actions";
 import { isReelEditable } from "@/features/feedback/reel-order";
+import { loadReview } from "@/features/feedback/review";
 import {
   feedbackToValues,
   kataRatingValues,
 } from "@/features/feedback/values";
 import { getAthleteById } from "@/lib/queries/athletes";
 import {
+  getFeedbackActionItems,
   getFeedbackById,
+  getFeedbackGoals,
   getFeedbackKataRatings,
 } from "@/lib/queries/feedback";
 import { getAthleteKata } from "@/lib/queries/kata";
@@ -41,11 +44,13 @@ export default async function FeedbackDetailPage({
   const locale = await getLocale();
   const { id, feedbackId } = await params;
   const { edit } = await searchParams;
-  const [a, form, kata, kataRatings] = await Promise.all([
+  const [a, form, kata, kataRatings, goals, actions] = await Promise.all([
     getAthleteById(id),
     getFeedbackById(feedbackId),
     getAthleteKata(id),
     getFeedbackKataRatings(feedbackId),
+    getFeedbackGoals(feedbackId),
+    getFeedbackActionItems(feedbackId),
   ]);
   if (!a || !form || form.athleteId !== a.id) notFound();
 
@@ -64,6 +69,18 @@ export default async function FeedbackDetailPage({
   // (completed) it is play-only.
   const reelEditable = isReelEditable(form.status, editing);
   const repertoire = kata.map((k) => ({ kataId: k.kataId, kataName: k.kataName }));
+  // Pre-fill the dynamic action list from this meeting's own (non-carried) rows.
+  const actionDefaults = actions
+    .filter((it) => it.carriedFromActionId == null)
+    .map((it) => ({ text: it.text, kataId: it.kataId }));
+  // Review the previous meeting's open items while editing this one.
+  const review = editing
+    ? await loadReview(a.id, {
+        id: form.id,
+        meetingDate: form.meetingDate,
+        createdAt: form.createdAt,
+      })
+    : undefined;
 
   // Editing a submitted draft IS the in-person meeting: finalize via completeFeedback
   // and soft-lock the athlete's Side A. Editing a completed form is a plain update.
@@ -74,6 +91,8 @@ export default async function FeedbackDetailPage({
       ...feedbackToValues(form),
       ...kataRatingValues(repertoire, kataRatings),
     },
+    actionDefaults,
+    review,
     action: isSubmitted ? completeFeedback : updateFeedback,
     submitLabel: isSubmitted ? f.complete : nl.common.save,
     lockSideA: isSubmitted,
@@ -191,7 +210,12 @@ export default async function FeedbackDetailPage({
           </section>
         </div>
       ) : (
-        <FeedbackDetail form={form} kataRatings={kataRatings} />
+        <FeedbackDetail
+          form={form}
+          kataRatings={kataRatings}
+          goals={goals}
+          actions={actions}
+        />
       )}
 
       {/* Clip reel — curate before the meeting; play-only during/after it. */}

@@ -1,6 +1,7 @@
 "use server";
 
 import { and, eq, isNull, ne, sql } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -11,10 +12,23 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendCoachSubmittedNotice, sendPrepareInvite } from "@/lib/email/send";
 import { getAthleteById } from "@/lib/queries/athletes";
-import { getFeedbackById } from "@/lib/queries/feedback";
+import {
+  getFeedbackById,
+  getOpenGoalsForReview,
+  getPendingActionsForReview,
+  getPreviousMeeting,
+} from "@/lib/queries/feedback";
 import { getAthleteKata } from "@/lib/queries/kata";
 import { prepareRateLimiter } from "@/lib/rate-limit";
 import { nl } from "@/messages/nl";
+import {
+  buildAthleteReviewStatements,
+  buildCoachChildStatements,
+  parseActionItems,
+  parseGoals,
+  validateAthleteReview,
+  validateCoachReview,
+} from "./children";
 import { currentSeason, type FormType, isFormType, maxMeetingNumber } from "./form-type";
 import {
   type AthletePrepParsed,
@@ -26,6 +40,60 @@ import {
   type KataRatingInput,
   parseKataRatings,
 } from "./schema";
+
+type Stmt = BatchItem<"pg">;
+type ReviewError = { fieldErrors: Record<string, string> };
+
+/**
+ * Shared coach-save gather: parse the dynamic goals/actions/ratings, re-derive the
+ * previous meeting + its open items, validate the review, and build the child batch.
+ * Returns either the statements to append to the parent write, or review field errors.
+ */
+async function gatherCoachChildren(
+  athleteId: string,
+  feedbackId: string,
+  parsed: FeedbackParsed,
+  formData: FormData,
+  createdAt: Date,
+): Promise<{ stmts: Stmt[] } | ReviewError> {
+  const repertoire = await getAthleteKata(athleteId);
+  const kataIds = new Set(repertoire.map((r) => r.kataId));
+  const ratings = parseKataRatings(
+    formData,
+    repertoire.map((r) => r.kataId),
+  );
+  const goals = parseGoals(formData);
+  const actions = parseActionItems(formData, kataIds);
+
+  const prev = await getPreviousMeeting(athleteId, {
+    id: feedbackId,
+    meetingDate: parsed.meetingDate,
+    createdAt,
+  });
+  const prevGoals = prev ? await getOpenGoalsForReview(prev.id) : [];
+  const prevActions = prev ? await getPendingActionsForReview(prev.id) : [];
+
+  const reviewErrors = validateCoachReview(formData, prevGoals);
+  if (Object.keys(reviewErrors).length > 0) {
+    return { fieldErrors: reviewErrors };
+  }
+
+  const stmts = buildCoachChildStatements({
+    feedbackId,
+    goals,
+    actions,
+    ratings,
+    prevGoals,
+    prevActions,
+    formData,
+  });
+  return { stmts };
+}
+
+async function runBatch(stmts: Stmt[]): Promise<void> {
+  if (stmts.length === 0) return;
+  await db.batch(stmts as [Stmt, ...Stmt[]]);
+}
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -149,16 +217,21 @@ export async function createFeedback(
     return { ok: false, fieldErrors: toFieldErrors(parsed.error.issues) };
   }
 
-  const ratings = await readKataRatings(athleteId, formData);
+  // Generate the id up front so children + review writes can reference the new
+  // meeting inside ONE db.batch (neon-http batch can't read a row it just inserted).
+  const id = crypto.randomUUID();
+  const now = new Date();
+  const children = await gatherCoachChildren(athleteId, id, parsed.data, formData, now);
+  if ("fieldErrors" in children) return { ok: false, fieldErrors: children.fieldErrors };
+
   // Fill-in-person path: created already completed (column default), stamp completedAt.
-  const [created] = await db
+  const parent = db
     .insert(feedbackForms)
-    .values({ ...toValues(parsed.data), athleteId, completedAt: new Date() })
-    .returning({ id: feedbackForms.id });
-  await insertKataRatings(created.id, ratings);
+    .values({ ...toValues(parsed.data), id, athleteId, completedAt: now });
+  await runBatch([parent, ...children.stmts]);
 
   revalidatePath(`/athletes/${athleteId}`);
-  redirect(`/athletes/${athleteId}/feedback/${created.id}`);
+  redirect(`/athletes/${athleteId}/feedback/${id}`);
 }
 
 export async function updateFeedback(
@@ -175,16 +248,23 @@ export async function updateFeedback(
     return { ok: false, fieldErrors: toFieldErrors(parsed.error.issues) };
   }
 
-  const ratings = await readKataRatings(athleteId, formData);
-  await db
+  const existing = await getFeedbackById(id);
+  if (!existing) return { ok: false, message: "Onbekend gesprek." };
+
+  const children = await gatherCoachChildren(
+    athleteId,
+    id,
+    parsed.data,
+    formData,
+    existing.createdAt,
+  );
+  if ("fieldErrors" in children) return { ok: false, fieldErrors: children.fieldErrors };
+
+  const parent = db
     .update(feedbackForms)
     .set(toValues(parsed.data))
     .where(eq(feedbackForms.id, id));
-  // Replace the kata-rating set (append-free; the form posts the full set).
-  await db
-    .delete(feedbackKataRatings)
-    .where(eq(feedbackKataRatings.feedbackId, id));
-  await insertKataRatings(id, ratings);
+  await runBatch([parent, ...children.stmts]);
 
   revalidatePath(`/athletes/${athleteId}`);
   redirect(`/athletes/${athleteId}/feedback/${id}`);
@@ -266,6 +346,20 @@ export async function submitAthletePreparation(
     return { ok: false, fieldErrors: toFieldErrors(parsed.error.issues) };
   }
 
+  // Previous meeting's open items the athlete self-disposes. Re-derived server-side
+  // from the token's athlete — never trust a posted feedback id (public boundary).
+  const prev = await getPreviousMeeting(form.athleteId, {
+    id: form.id,
+    meetingDate: form.meetingDate,
+    createdAt: form.createdAt,
+  });
+  const prevGoals = prev ? await getOpenGoalsForReview(prev.id) : [];
+  const prevActions = prev ? await getPendingActionsForReview(prev.id) : [];
+  const reviewErrors = validateAthleteReview(formData, prevGoals, prevActions);
+  if (Object.keys(reviewErrors).length > 0) {
+    return { ok: false, fieldErrors: reviewErrors };
+  }
+
   const ratings = await readKataRatings(form.athleteId, formData);
   // Race-safe: the `status` guard in the WHERE makes a concurrent coach-complete a no-op.
   const updated = await db
@@ -290,6 +384,10 @@ export async function submitAthletePreparation(
     .delete(feedbackKataRatings)
     .where(eq(feedbackKataRatings.feedbackId, form.id));
   await insertKataRatings(form.id, ratings);
+
+  // Athlete self-claim onto the PREVIOUS meeting's open rows (athlete* columns only,
+  // scoped to open state). After the guarded submit succeeded.
+  await runBatch(buildAthleteReviewStatements(formData, prevGoals, prevActions));
 
   // Best-effort coach notification, after the response flushes — an email failure
   // must never break the athlete's submit.
@@ -408,15 +506,23 @@ export async function completeFeedback(
     return { ok: false, fieldErrors: toFieldErrors(parsed.error.issues) };
   }
 
-  const ratings = await readKataRatings(athleteId, formData);
-  await db
+  const existing = await getFeedbackById(id);
+  if (!existing) return { ok: false, message: "Onbekend gesprek." };
+
+  const children = await gatherCoachChildren(
+    athleteId,
+    id,
+    parsed.data,
+    formData,
+    existing.createdAt,
+  );
+  if ("fieldErrors" in children) return { ok: false, fieldErrors: children.fieldErrors };
+
+  const parent = db
     .update(feedbackForms)
     .set({ ...toValues(parsed.data), status: "completed", completedAt: new Date() })
     .where(eq(feedbackForms.id, id));
-  await db
-    .delete(feedbackKataRatings)
-    .where(eq(feedbackKataRatings.feedbackId, id));
-  await insertKataRatings(id, ratings);
+  await runBatch([parent, ...children.stmts]);
 
   revalidatePath(`/athletes/${athleteId}`);
   redirect(`/athletes/${athleteId}/feedback/${id}`);

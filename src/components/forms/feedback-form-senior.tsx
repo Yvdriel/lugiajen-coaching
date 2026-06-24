@@ -19,7 +19,7 @@ export function FeedbackFormSenior({
   const nl = useMessages();
   const f = nl.feedback;
   return (
-    <FeedbackFormShell formType="SENIOR" {...props}>
+    <FeedbackFormShell formType="SENIOR" repertoire={repertoire} {...props}>
       {(register, errors) => (
         <>
           <SideASection

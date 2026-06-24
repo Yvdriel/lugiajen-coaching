@@ -1,5 +1,7 @@
 import type { Messages } from "@/messages";
 import type {
+  FeedbackActionRow,
+  FeedbackGoalRow,
   FeedbackKataRatingRow,
   FeedbackRow,
 } from "@/lib/queries/feedback";
@@ -24,9 +26,22 @@ export function feedbackSections(
   form: FeedbackRow,
   m: Messages,
   kataRatings: FeedbackKataRatingRow[] = [],
+  goalRows: FeedbackGoalRow[] = [],
+  actionRows: FeedbackActionRow[] = [],
 ): PdfSection[] {
-  const ff = m.feedback.fields;
+  const fm = m.feedback;
+  const ff = fm.fields;
   const isU12 = form.formType === "U12";
+  const goalLabel = (cat: FeedbackGoalRow["category"]): string =>
+    cat === "main"
+      ? isU12
+        ? ff.goalMain
+        : ff.goalMainProcess
+      : cat === "performance"
+        ? ff.goalPerformance
+        : cat === "outcome"
+          ? ff.goalOutcome
+          : ff.kataFocus;
 
   const sideA = clean([
     { label: ff.athleteProudOf, value: form.athleteProudOf },
@@ -84,20 +99,26 @@ export function feedbackSections(
   ]);
 
   const goals = clean([
-    { label: isU12 ? ff.goalMain : ff.goalMainProcess, value: form.goalMain },
-    { label: ff.goalPerformance, value: form.goalPerformance },
-    { label: ff.goalOutcome, value: form.goalOutcome },
-    { label: ff.kataFocus, value: form.kataFocus },
+    ...goalRows.map((g) => ({
+      label: goalLabel(g.category),
+      value:
+        g.status !== "active" ? `${g.text} (${fm.goalStatus[g.status]})` : g.text,
+    })),
     { label: ff.periodizationNotes, value: form.periodizationNotes },
     { label: ff.physicalPlan, value: form.physicalPlan },
   ]);
 
-  const actions = clean([
-    { label: ff.action1, value: form.action1 },
-    { label: ff.action2, value: form.action2 },
-    { label: ff.action3, value: form.action3 },
-    { label: ff.action4, value: form.action4 },
-  ]);
+  const actions = clean(
+    actionRows.map((a) => ({
+      label: a.kataName ?? fm.actions.general,
+      value:
+        a.text +
+        (a.coachDisposition !== "pending"
+          ? ` (${fm.disposition[a.coachDisposition]})`
+          : "") +
+        (a.carriedFromActionId ? ` [${fm.goalStatus.carried}]` : ""),
+    })),
+  );
 
   return [
     { title: m.feedback.sideA, fields: sideA },

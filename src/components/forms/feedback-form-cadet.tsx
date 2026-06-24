@@ -19,7 +19,7 @@ export function FeedbackFormCadet({
   const nl = useMessages();
   const f = nl.feedback;
   return (
-    <FeedbackFormShell formType="CADET" {...props}>
+    <FeedbackFormShell formType="CADET" repertoire={repertoire} {...props}>
       {(register, errors) => (
         <>
           <SideASection

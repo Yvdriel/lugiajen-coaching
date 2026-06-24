@@ -57,6 +57,13 @@
       "when": 1781899747632,
       "tag": "0007_mute_namora",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1782293401581,
+      "tag": "0008_talented_professor_monster",
+      "breakpoints": true
     }
   ]
 }

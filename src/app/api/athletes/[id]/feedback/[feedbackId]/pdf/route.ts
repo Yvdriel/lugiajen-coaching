@@ -4,7 +4,9 @@ import { FeedbackDocument } from "@/lib/pdf/feedback-document";
 import { assertCoach, pdfResponse, renderPdf, safeName } from "@/lib/pdf/http";
 import { getAthleteById } from "@/lib/queries/athletes";
 import {
+  getFeedbackActionItems,
   getFeedbackById,
+  getFeedbackGoals,
   getFeedbackKataRatings,
 } from "@/lib/queries/feedback";
 
@@ -19,10 +21,12 @@ export async function GET(
   if (denied) return denied;
 
   const { id, feedbackId } = await params;
-  const [athlete, form, kataRatings] = await Promise.all([
+  const [athlete, form, kataRatings, goals, actions] = await Promise.all([
     getAthleteById(id),
     getFeedbackById(feedbackId),
     getFeedbackKataRatings(feedbackId),
+    getFeedbackGoals(feedbackId),
+    getFeedbackActionItems(feedbackId),
   ]);
   if (!athlete || !form || form.athleteId !== athlete.id) {
     return new Response("Not found", { status: 404 });
@@ -34,7 +38,15 @@ export async function GET(
 
   const [m, locale] = await Promise.all([getMessages(), getLocale()]);
   const buffer = await renderPdf(
-    createElement(FeedbackDocument, { athlete, form, kataRatings, m, locale }),
+    createElement(FeedbackDocument, {
+      athlete,
+      form,
+      kataRatings,
+      goals,
+      actions,
+      m,
+      locale,
+    }),
   );
   return pdfResponse(
     buffer,

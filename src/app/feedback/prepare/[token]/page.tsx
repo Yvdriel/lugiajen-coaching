@@ -6,6 +6,7 @@ import {
   markPrepareOpened,
   submitAthletePreparation,
 } from "@/features/feedback/actions";
+import { loadReview } from "@/features/feedback/review";
 import {
   feedbackToValues,
   kataRatingValues,
@@ -90,11 +91,17 @@ export default async function PreparePage({
     );
   }
 
-  // awaiting_athlete — the editable Side A form.
+  // awaiting_athlete — the editable Side A form, preceded by the self-review of the
+  // previous meeting's open items (re-derived server-side from the athlete).
   const repertoire = (await getAthleteKata(form.athleteId)).map((k) => ({
     kataId: k.kataId,
     kataName: k.kataName,
   }));
+  const review = await loadReview(form.athleteId, {
+    id: form.id,
+    meetingDate: form.meetingDate,
+    createdAt: form.createdAt,
+  });
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-6 md:p-8">
@@ -103,6 +110,7 @@ export default async function PreparePage({
       <AthletePrepForm
         formType={form.formType}
         repertoire={repertoire}
+        review={review}
         defaultValues={{
           ...feedbackToValues(form),
           ...kataRatingValues(repertoire),

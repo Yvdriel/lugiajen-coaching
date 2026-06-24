@@ -7,25 +7,29 @@ import type { FeedbackFormState } from "@/features/feedback/actions";
 import type { FormType } from "@/features/feedback/form-type";
 import { useMessages } from "@/i18n/client";
 import {
+  AthleteReviewPanel,
   type FBValues,
+  type FeedbackReview,
   type KataRepertoireItem,
   Section,
   SideAFields,
 } from "./feedback-fields";
 
 /**
- * The athlete's public prepare form: only Side A + kata self-ratings, no header/coach
- * fields. Its own RHF + useActionState wiring (decoupled from the coach FeedbackFormShell).
- * The action is bound to the prepare token by the page.
+ * The athlete's public prepare form: a self-disposition review of the previous
+ * meeting's open items, then Side A + kata self-ratings. No header/coach fields. Its
+ * own RHF + useActionState wiring. The action is bound to the prepare token by the page.
  */
 export function AthletePrepForm({
   formType,
   repertoire,
+  review,
   defaultValues,
   action,
 }: {
   formType: FormType;
   repertoire: KataRepertoireItem[];
+  review: FeedbackReview;
   defaultValues: FBValues;
   action: (
     prev: FeedbackFormState,
@@ -53,6 +57,7 @@ export function AthletePrepForm({
   return (
     <form action={formAction} className="flex flex-col gap-6" noValidate>
       <input type="hidden" name="formType" value={formType} />
+      <AthleteReviewPanel review={review} fieldErrors={state.fieldErrors} />
       <Section title={nl.feedback.sideA}>
         <SideAFields
           formType={formType}

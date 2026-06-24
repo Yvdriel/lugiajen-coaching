@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type {
+  FeedbackActionRow,
+  FeedbackGoalRow,
   FeedbackKataRatingRow,
   FeedbackRow,
 } from "@/lib/queries/feedback";
@@ -27,15 +29,51 @@ function form(overrides: Partial<FeedbackRow>): FeedbackRow {
     athleteNeedsWork: null,
     coachStrength: null,
     coachDevelopmentArea: null,
-    goalMain: null,
-    goalPerformance: null,
-    goalOutcome: null,
-    kataFocus: null,
-    action1: null,
-    action2: null,
-    action3: null,
+    periodizationNotes: null,
+    physicalPlan: null,
     ...overrides,
   } as unknown as FeedbackRow;
+}
+
+// Goals + action items are rows now (not columns); tests build the rows directly.
+function goal(
+  category: FeedbackGoalRow["category"],
+  text: string,
+  overrides: Partial<FeedbackGoalRow> = {},
+): FeedbackGoalRow {
+  return {
+    category,
+    text,
+    status: "active",
+    momentum: null,
+    coachReason: null,
+    athleteDisposition: null,
+    athleteReason: null,
+    carriedFromGoalId: null,
+    reviewedAtMeetingId: null,
+    sortOrder: 0,
+    ...overrides,
+  } as unknown as FeedbackGoalRow;
+}
+
+function action(
+  text: string,
+  kataName: string | null = null,
+  overrides: Partial<FeedbackActionRow> = {},
+): FeedbackActionRow {
+  return {
+    text,
+    kataId: kataName ? "k" : null,
+    kataName,
+    coachDisposition: "pending",
+    coachNote: null,
+    athleteDisposition: null,
+    athleteReason: null,
+    carriedFromActionId: null,
+    reviewedAtMeetingId: null,
+    sortOrder: 0,
+    ...overrides,
+  } as unknown as FeedbackActionRow;
 }
 
 const labels = (s: ReturnType<typeof feedbackSections>[number]) =>
@@ -48,9 +86,10 @@ describe("feedbackSections", () => {
         formType: "U12",
         athleteFunScore: 4,
         athleteShowParents: "Mijn kata",
-        goalMain: "Mooie zenkutsu",
       }),
       nl,
+      [],
+      [goal("main", "Mooie zenkutsu")],
     );
     const sideA = sections.find((s) => s.title === nl.feedback.sideA);
     expect(labels(sideA!)).toContain(nl.feedback.fields.athleteFunScore);
@@ -63,14 +102,14 @@ describe("feedbackSections", () => {
 
   it("CADET shows self-ratings + the three-tier goals (process label)", () => {
     const sections = feedbackSections(
-      form({
-        formType: "CADET",
-        selfRatingTraining: 5,
-        goalMain: "Procesdoel",
-        goalPerformance: "Top 3",
-        kataFocus: "Kanku Dai",
-      }),
+      form({ formType: "CADET", selfRatingTraining: 5 }),
       nl,
+      [],
+      [
+        goal("main", "Procesdoel"),
+        goal("performance", "Top 3"),
+        goal("kata_focus", "Kanku Dai"),
+      ],
     );
     const sideA = sections.find((s) => s.title === nl.feedback.sideA)!;
     expect(labels(sideA)).toContain(nl.feedback.fields.selfRatingTraining);
@@ -83,16 +122,18 @@ describe("feedbackSections", () => {
     ]);
   });
 
-  it("SENIOR surfaces senior-only fields + the 4th action", () => {
+  it("SENIOR surfaces senior-only fields, the physical plan, and kata-tagged actions", () => {
     const sections = feedbackSections(
       form({
         formType: "SENIOR",
         selfRatingRecovery: 3,
         physicalStateNotes: "Lichte knieklacht",
         physicalPlan: "2x mobiliteit per week",
-        action4: "Slaaplog bijhouden",
       }),
       nl,
+      [],
+      [],
+      [action("Slaaplog bijhouden"), action("Hogere sprong", "Unsu")],
     );
     const sideA = sections.find((s) => s.title === nl.feedback.sideA)!;
     expect(labels(sideA)).toContain(nl.feedback.fields.selfRatingRecovery);
@@ -102,7 +143,9 @@ describe("feedbackSections", () => {
     expect(labels(goals)).toContain(nl.feedback.fields.physicalPlan);
 
     const actions = sections.find((s) => s.title === nl.feedback.actionItems)!;
-    expect(labels(actions)).toContain(nl.feedback.fields.action4);
+    // Actions are labelled by kata (general first), values carry the text.
+    expect(labels(actions)).toEqual([nl.feedback.actions.general, "Unsu"]);
+    expect(actions.fields.map((f) => f.value)).toContain("Slaaplog bijhouden");
   });
 
   it("includes a kata self-rating section when ratings are passed", () => {
