@@ -18,12 +18,19 @@ const CHUNK_SIZE = 50 * 1024 * 1024;
 export function ClipUploadDialog({
   athleteId,
   kataOptions,
+  derivedFromClipId,
+  defaultKataId,
 }: {
   athleteId: string;
   kataOptions: KataOption[];
+  // When set, this is a Kinovea round-trip upload: the new clip is an
+  // analysis/comparison derived from `derivedFromClipId`, kata pre-filled.
+  derivedFromClipId?: string;
+  defaultKataId?: string;
 }) {
   const nl = useMessages();
   const c = nl.clips;
+  const isDerived = Boolean(derivedFromClipId);
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -48,6 +55,12 @@ export function ClipUploadDialog({
       kataId: (fd.get("kataId") as string) || undefined,
       recordedAt: (fd.get("recordedAt") as string) || undefined,
       label: (fd.get("label") as string) || undefined,
+      kind: isDerived
+        ? (((fd.get("kind") as string) || "analysis") as
+            | "analysis"
+            | "comparison")
+        : undefined,
+      derivedFromClipId,
     });
     if (!created.ok || !created.clipId) {
       setProgress(null);
@@ -92,7 +105,7 @@ export function ClipUploadDialog({
         className="w-fit"
         onClick={() => dialogRef.current?.showModal()}
       >
-        {c.upload}
+        {isDerived ? c.uploadAnalysis : c.upload}
       </Button>
       <dialog
         ref={dialogRef}
@@ -103,7 +116,9 @@ export function ClipUploadDialog({
           onSubmit={onSubmit}
           className="flex flex-col gap-3 p-5"
         >
-          <h2 className="text-sm font-semibold">{c.uploadTitle}</h2>
+          <h2 className="text-sm font-semibold">
+            {isDerived ? c.analysisUploadTitle : c.uploadTitle}
+          </h2>
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="clip-file">{c.file}</Label>
@@ -117,11 +132,28 @@ export function ClipUploadDialog({
             />
           </div>
 
+          {isDerived ? (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="clip-kind">{c.kindField}</Label>
+              <select
+                id="clip-kind"
+                name="kind"
+                defaultValue="analysis"
+                disabled={uploading}
+                className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
+              >
+                <option value="analysis">{c.kind.analysis}</option>
+                <option value="comparison">{c.kind.comparison}</option>
+              </select>
+            </div>
+          ) : null}
+
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="clip-kata">{c.kata}</Label>
             <select
               id="clip-kata"
               name="kataId"
+              defaultValue={defaultKataId ?? ""}
               disabled={uploading}
               className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
             >
@@ -182,7 +214,7 @@ export function ClipUploadDialog({
               {nl.common.cancel}
             </Button>
             <Button type="submit" size="sm" disabled={uploading}>
-              {c.upload}
+              {isDerived ? c.uploadAnalysis : c.upload}
             </Button>
           </div>
         </form>

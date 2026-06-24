@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { clips } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { deleteAsset, getVideoDetails } from "./lib/stream";
+import { deleteAsset, enableDownload, getVideoDetails } from "./lib/stream";
 import { type ClipUploadInput, clipUploadSchema } from "./schema";
 
 // Every mutating action re-checks the session itself (convention 2).
@@ -39,13 +39,33 @@ export async function createClipUpload(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message };
   }
-  const { athleteId, kataId, recordedAt, label } = parsed.data;
+  const { athleteId, kataId, recordedAt, label, kind, derivedFromClipId } =
+    parsed.data;
+
+  // A derived clip (Kinovea export) must point at a real raw clip of the SAME
+  // athlete — never another athlete's clip, never a derived-of-derived chain.
+  if (derivedFromClipId) {
+    const [source] = await db
+      .select({ athleteId: clips.athleteId, kind: clips.kind })
+      .from(clips)
+      .where(eq(clips.id, derivedFromClipId));
+    if (!source) return { ok: false, message: "Onbekende bronvideo." };
+    if (source.athleteId !== athleteId)
+      return { ok: false, message: "Bronvideo hoort niet bij deze atleet." };
+    if (source.kind !== "raw")
+      return {
+        ok: false,
+        message: "Je kunt alleen analyses koppelen aan een originele video.",
+      };
+  }
+
   const [created] = await db
     .insert(clips)
     .values({
       athleteId,
       kataId: kataId ?? null,
-      kind: "raw",
+      kind: kind ?? "raw",
+      derivedFromClipId: derivedFromClipId ?? null,
       assetId: `${PENDING_PREFIX}${crypto.randomUUID()}`,
       status: "uploading",
       visibility: "coach_only",
@@ -125,4 +145,54 @@ export async function deleteClip(clipId: string): Promise<ClipActionState> {
   await db.delete(clips).where(eq(clips.id, clipId));
   revalidatePath(`/athletes/${clip.athleteId}`);
   redirect(`/athletes/${clip.athleteId}?tab=clips`);
+}
+
+// `status` here is Cloudflare's MP4-generation state (inprogress | ready | error),
+// NOT the clip's own status enum.
+export type ClipDownloadState = {
+  ok: boolean;
+  status?: string;
+  url?: string;
+  percentComplete?: number;
+  message?: string;
+};
+
+/**
+ * Trigger (or refresh) MP4 generation for a ready clip so the coach can download
+ * the original for Kinovea. Cloudflare's POST /downloads is idempotent — the
+ * client re-calls this to poll until status is `ready`, then uses the MP4 url.
+ */
+export async function requestClipDownload(
+  clipId: string,
+): Promise<ClipDownloadState> {
+  await requireSession();
+  const [clip] = await db
+    .select({ assetId: clips.assetId, status: clips.status, kind: clips.kind })
+    .from(clips)
+    .where(eq(clips.id, clipId));
+  if (!clip) return { ok: false, message: "Onbekende clip." };
+  // Only the original (raw) clip is downloadable — analyses/comparisons come out
+  // of Kinovea, not back into it.
+  if (clip.kind !== "raw")
+    return {
+      ok: false,
+      message: "Alleen de originele video kan gedownload worden.",
+    };
+  if (clip.assetId.startsWith(PENDING_PREFIX) || clip.status !== "ready")
+    return { ok: false, message: "Video is nog niet klaar om te downloaden." };
+  try {
+    const info = await enableDownload(clip.assetId);
+    // Cloudflare reports a failed MP4 generation in-band — surface it as an
+    // error so the UI doesn't sit on "preparing…" forever.
+    if (info.status === "error")
+      return { ok: false, message: "Download voorbereiden mislukt." };
+    return {
+      ok: true,
+      status: info.status,
+      url: info.url,
+      percentComplete: info.percentComplete,
+    };
+  } catch {
+    return { ok: false, message: "Download voorbereiden mislukt." };
+  }
 }
