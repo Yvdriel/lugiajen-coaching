@@ -304,6 +304,7 @@ export const nl = {
       moveDown: "Omlaag",
       detach: "Verwijderen",
       confirmDetach: "Deze video uit de reel halen?",
+      locked: "Het gesprek is afgerond — de reel kan niet meer gewijzigd worden.",
       processing: "Video wordt nog verwerkt…",
       processingShort: "Verwerken",
       prev: "Vorige",

@@ -175,7 +175,9 @@ function ReelRow({
   const nl = useMessages();
   const r = nl.feedback.reel;
   const [caption, setCaption] = useState(row.caption ?? "");
-  const dirty = caption !== (row.caption ?? "");
+  // Compare trimmed: the server stores a trimmed caption, so without this the Save
+  // button stays stuck after saving a value with leading/trailing whitespace.
+  const dirty = caption.trim() !== (row.caption ?? "");
 
   return (
     <li className="flex flex-col gap-2 rounded-md border border-border p-3">
@@ -237,7 +239,11 @@ function ReelRow({
             type="button"
             size="sm"
             disabled={pending}
-            onClick={() => onCaption(caption)}
+            onClick={() => {
+              const trimmed = caption.trim();
+              setCaption(trimmed);
+              onCaption(trimmed);
+            }}
           >
             {nl.common.save}
           </Button>

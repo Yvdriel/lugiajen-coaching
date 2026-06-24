@@ -299,6 +299,7 @@ export const en: Messages = {
       moveDown: "Down",
       detach: "Remove",
       confirmDetach: "Remove this clip from the reel?",
+      locked: "The meeting is completed — the reel can no longer be changed.",
       processing: "Clip is still processing…",
       processingShort: "Processing",
       prev: "Previous",

@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { clips, feedbackClips, feedbackForms } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { nl } from "@/messages/nl";
 import { reorderSortValues } from "./reel-order";
 
 // Coach-only reel curation on a parent-meeting feedback gesprek. The clip bytes
@@ -26,11 +27,22 @@ async function requireSession() {
 
 async function loadForm(feedbackId: string) {
   const [form] = await db
-    .select({ id: feedbackForms.id, athleteId: feedbackForms.athleteId })
+    .select({
+      id: feedbackForms.id,
+      athleteId: feedbackForms.athleteId,
+      status: feedbackForms.status,
+    })
     .from(feedbackForms)
     .where(eq(feedbackForms.id, feedbackId));
   return form ?? null;
 }
+
+// A completed gesprek's reel is locked server-side, not just hidden in the UI —
+// it's what parents see on the portal, so it must not change after the meeting.
+const lockedState: ReelActionState = {
+  ok: false,
+  message: nl.feedback.reel.locked,
+};
 
 function revalidateReel(athleteId: string, feedbackId: string) {
   revalidatePath(`/athletes/${athleteId}/feedback/${feedbackId}`);
@@ -53,6 +65,7 @@ export async function attachClipToFeedback(
   }
   const form = await loadForm(feedbackId);
   if (!form) return { ok: false, message: "Onbekend gesprek." };
+  if (form.status === "completed") return lockedState;
 
   const [clip] = await db
     .select({ athleteId: clips.athleteId })
@@ -102,9 +115,10 @@ export async function detachFeedbackClip(
     .from(feedbackClips)
     .where(eq(feedbackClips.id, feedbackClipId));
   if (!row) return { ok: true };
+  const form = await loadForm(row.feedbackId);
+  if (form?.status === "completed") return lockedState;
 
   await db.delete(feedbackClips).where(eq(feedbackClips.id, feedbackClipId));
-  const form = await loadForm(row.feedbackId);
   if (form) revalidateReel(form.athleteId, row.feedbackId);
   return { ok: true };
 }
@@ -117,12 +131,17 @@ export async function updateFeedbackClipCaption(
   await requireSession();
   if (!UUID_RE.test(feedbackClipId)) return { ok: false, message: "Onbekend item." };
   const [row] = await db
-    .update(feedbackClips)
-    .set({ caption: caption.trim() || null })
-    .where(eq(feedbackClips.id, feedbackClipId))
-    .returning({ feedbackId: feedbackClips.feedbackId });
+    .select({ feedbackId: feedbackClips.feedbackId })
+    .from(feedbackClips)
+    .where(eq(feedbackClips.id, feedbackClipId));
   if (!row) return { ok: false, message: "Onbekend item." };
   const form = await loadForm(row.feedbackId);
+  if (form?.status === "completed") return lockedState;
+
+  await db
+    .update(feedbackClips)
+    .set({ caption: caption.trim() || null })
+    .where(eq(feedbackClips.id, feedbackClipId));
   if (form) revalidateReel(form.athleteId, row.feedbackId);
   return { ok: true };
 }
@@ -140,6 +159,7 @@ export async function reorderFeedbackClips(
   if (!UUID_RE.test(feedbackId)) return { ok: false, message: "Onbekend gesprek." };
   const form = await loadForm(feedbackId);
   if (!form) return { ok: false, message: "Onbekend gesprek." };
+  if (form.status === "completed") return lockedState;
 
   const current = await db
     .select({ id: feedbackClips.id })
