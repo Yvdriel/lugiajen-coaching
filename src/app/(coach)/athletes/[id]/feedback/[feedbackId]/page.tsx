@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AthleteAnswers } from "@/components/display/athlete-answers";
 import { FeedbackDetail } from "@/components/display/feedback-detail";
+import { FeedbackReelSection } from "@/components/clips/feedback-reel-section";
 import { FeedbackFormCadet } from "@/components/forms/feedback-form-cadet";
 import { FeedbackFormJunior } from "@/components/forms/feedback-form-junior";
 import { FeedbackFormSenior } from "@/components/forms/feedback-form-senior";
@@ -15,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { resolveRecipient } from "@/features/athletes/consent";
 import { completeFeedback, updateFeedback } from "@/features/feedback/actions";
+import { isReelEditable } from "@/features/feedback/reel-order";
 import {
   feedbackToValues,
   kataRatingValues,
@@ -58,6 +60,9 @@ export default async function FeedbackDetailPage({
   const isDraft = form.status === "awaiting_athlete";
   const isSubmitted = form.status === "athlete_submitted";
   const editing = edit === "1" && !isDraft;
+  // The reel may be curated only before the meeting; during (editing) + after
+  // (completed) it is play-only.
+  const reelEditable = isReelEditable(form.status, editing);
   const repertoire = kata.map((k) => ({ kataId: k.kataId, kataName: k.kataName }));
 
   // Editing a submitted draft IS the in-person meeting: finalize via completeFeedback
@@ -188,6 +193,13 @@ export default async function FeedbackDetailPage({
       ) : (
         <FeedbackDetail form={form} kataRatings={kataRatings} />
       )}
+
+      {/* Clip reel — curate before the meeting; play-only during/after it. */}
+      <FeedbackReelSection
+        feedbackId={form.id}
+        athleteId={a.id}
+        editable={reelEditable}
+      />
     </div>
   );
 }

@@ -11,15 +11,22 @@ import {
 } from "@/components/display/kata-repertoire";
 import { ScoringHistoryPanel } from "@/components/display/scoring-history-panel";
 import { StatsOverview } from "@/components/display/stats-overview";
+import {
+  ReelPlayer,
+  type ReelPlayerClip,
+} from "@/components/clips/reel-player";
 import { buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isPortalBlocked } from "@/features/athletes/consent";
+import { signedIframeUrl } from "@/features/clips/lib/playback";
+import { playableReelClips } from "@/features/feedback/reel-order";
 import { buildAthleteStats } from "@/lib/athlete-stats";
 import { calculateAge, getCategories } from "@/lib/categories";
 import { getAthleteByViewToken } from "@/lib/queries/athletes";
 import { getAthleteCompetitions } from "@/lib/queries/competitions";
 import {
   getCompletedFeedbackForms,
+  getFeedbackClipsByFeedbackIds,
   getFeedbackKataRatingsByAthlete,
   getPendingPrepareForm,
 } from "@/lib/queries/feedback";
@@ -99,6 +106,30 @@ export default async function PortalPage({
     getPendingPrepareForm(a.id),
   ]);
   const kataNames = new Map(kataLib.map((k) => [k.id, k.name]));
+
+  // Parent-meeting reels for completed gesprekken. Tokens are minted server-side;
+  // the page is already consent-gated (isPortalBlocked above), so reel playback
+  // rides that same gate — no separate per-video check (decision 2026-06-24).
+  const reelsByForm = await getFeedbackClipsByFeedbackIds(
+    feedback.map((f) => f.id),
+  );
+  const reelPlayers = new Map<string, ReelPlayerClip[]>();
+  for (const f of feedback) {
+    const ready = playableReelClips(reelsByForm.get(f.id) ?? []);
+    if (ready.length === 0) continue;
+    reelPlayers.set(
+      f.id,
+      await Promise.all(
+        ready.map(async (c) => ({
+          clipId: c.clipId,
+          caption: c.caption,
+          label: c.label,
+          kataName: c.kataName,
+          iframeUrl: await signedIframeUrl(c.assetId, c.status),
+        })),
+      ),
+    );
+  }
 
   const stats = buildAthleteStats({
     competitions,
@@ -270,11 +301,19 @@ export default async function PortalPage({
                         {form.season}
                       </span>
                     </summary>
-                    <div className="border-t border-border p-4">
+                    <div className="flex flex-col gap-4 border-t border-border p-4">
                       <FeedbackDetail
                         form={form}
                         kataRatings={feedbackKataRatings.get(form.id) ?? []}
                       />
+                      {reelPlayers.get(form.id) ? (
+                        <section className="flex flex-col gap-3 border-t border-border pt-4">
+                          <h3 className="text-sm font-semibold">
+                            {nl.feedback.reel.title}
+                          </h3>
+                          <ReelPlayer clips={reelPlayers.get(form.id) ?? []} />
+                        </section>
+                      ) : null}
                     </div>
                   </details>
                 </li>
