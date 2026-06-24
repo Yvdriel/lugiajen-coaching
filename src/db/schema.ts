@@ -7,6 +7,7 @@ import {
   integer,
   pgEnum,
   pgTable,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -39,6 +40,40 @@ export const feedbackStatusEnum = pgEnum("feedback_status", [
   "awaiting_athlete",
   "athlete_submitted",
   "completed",
+]);
+// Athlete's own claim on a prior goal/action ("did you do it?"), set in the
+// prepare flow. The coach's authoritative action verdict reuses these three plus
+// a `pending` sentinel (not-yet-reviewed) via actionCoachDispositionEnum.
+export const dispositionEnum = pgEnum("disposition", [
+  "done",
+  "partly",
+  "not_done",
+]);
+export const actionCoachDispositionEnum = pgEnum("action_coach_disposition", [
+  "pending",
+  "done",
+  "partly",
+  "not_done",
+]);
+// Goal lifecycle across the review loop. `active` = open; the rest are terminal
+// dispositions set when a later meeting reviews the goal.
+export const goalStatusEnum = pgEnum("goal_status", [
+  "active",
+  "achieved",
+  "carried",
+  "dropped",
+]);
+// Only set when a goal is carried — is it moving or stuck? `stalled` forces a reason.
+export const goalMomentumEnum = pgEnum("goal_momentum", [
+  "progressing",
+  "stalled",
+]);
+// Which of the template's goal slots a goal row came from.
+export const goalCategoryEnum = pgEnum("goal_category", [
+  "main",
+  "performance",
+  "outcome",
+  "kata_focus",
 ]);
 export const competitionTypeEnum = pgEnum("competition_type", [
   "club",
@@ -284,6 +319,92 @@ export const feedbackKataRatings = pgTable("feedback_kata_ratings", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// ── feedback_goals (one row per goal; promoted from the old goal_* columns) ─────
+// The review loop needs per-goal status + lineage, which columns can't carry. The
+// non-carried set (carriedFromGoalId IS NULL) is replaced on save like kata ratings;
+// carried rows are spawned by the review write and survive a re-save.
+export const feedbackGoals = pgTable(
+  "feedback_goals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    feedbackId: uuid("feedback_id")
+      .notNull()
+      .references(() => feedbackForms.id, { onDelete: "cascade" }),
+    category: goalCategoryEnum("category").notNull(),
+    text: text("text").notNull(),
+    status: goalStatusEnum("status").notNull().default("active"),
+    momentum: goalMomentumEnum("momentum"),
+    coachReason: text("coach_reason"),
+    // Athlete self-claim from the prepare flow (Side A); never coach-authoritative.
+    athleteDisposition: dispositionEnum("athlete_disposition"),
+    athleteReason: text("athlete_reason"),
+    // Lineage: a carried goal points back at the prior meeting's goal it continues.
+    carriedFromGoalId: uuid("carried_from_goal_id").references(
+      (): AnyPgColumn => feedbackGoals.id,
+      { onDelete: "set null" },
+    ),
+    // On the PRIOR row: which meeting reviewed/dispositioned it.
+    reviewedAtMeetingId: uuid("reviewed_at_meeting_id").references(
+      () => feedbackForms.id,
+      { onDelete: "set null" },
+    ),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    index("feedback_goals_feedback_idx").on(t.feedbackId, t.sortOrder),
+    index("feedback_goals_carried_idx").on(t.carriedFromGoalId),
+    // One carried goal per (meeting, source) so a re-save can't double-spawn.
+    uniqueIndex("feedback_goals_carry_uq").on(t.feedbackId, t.carriedFromGoalId),
+  ],
+);
+
+// ── feedback_action_items (uncapped, kata-taggable; promoted from action_1..4) ──
+export const feedbackActionItems = pgTable(
+  "feedback_action_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    feedbackId: uuid("feedback_id")
+      .notNull()
+      .references(() => feedbackForms.id, { onDelete: "cascade" }),
+    text: text("text").notNull(),
+    // null = "general" (not tied to a repertoire kata).
+    kataId: uuid("kata_id").references(() => kata.id, { onDelete: "set null" }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    coachDisposition: actionCoachDispositionEnum("coach_disposition")
+      .notNull()
+      .default("pending"),
+    coachNote: text("coach_note"),
+    athleteDisposition: dispositionEnum("athlete_disposition"),
+    athleteReason: text("athlete_reason"),
+    carriedFromActionId: uuid("carried_from_action_id").references(
+      (): AnyPgColumn => feedbackActionItems.id,
+      { onDelete: "set null" },
+    ),
+    reviewedAtMeetingId: uuid("reviewed_at_meeting_id").references(
+      () => feedbackForms.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    index("feedback_action_items_feedback_idx").on(t.feedbackId, t.sortOrder),
+    index("feedback_action_items_carried_idx").on(t.carriedFromActionId),
+    uniqueIndex("feedback_action_items_carry_uq").on(
+      t.feedbackId,
+      t.carriedFromActionId,
+    ),
+  ],
+);
+
 // ── competitions ──────────────────────────────────────────────────────────────
 export const competitions = pgTable("competitions", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -340,6 +461,47 @@ export const competitionEntries = pgTable(
       t.competitionId,
       t.athleteId,
       t.category,
+    ),
+  ],
+);
+
+// ── competition_athlete_reflection ────────────────────────────────────────────
+// One athlete reflection per (competition, athlete) — the athlete's own read on a
+// competition, filled during a meeting's prep (blind to the coach's per-entry
+// feedback). The four structured fields intentionally mirror the coach's entry
+// feedback so the meeting can lay them side by side. `reflectedAtMeetingId` is the
+// meeting whose prep captured it (set null if that meeting is later deleted); the
+// window resolver uses it to keep a reflected competition from reappearing next time.
+export const competitionAthleteReflection = pgTable(
+  "competition_athlete_reflection",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    competitionId: uuid("competition_id")
+      .notNull()
+      .references(() => competitions.id, { onDelete: "cascade" }),
+    athleteId: uuid("athlete_id")
+      .notNull()
+      .references(() => athletes.id, { onDelete: "cascade" }),
+    reflectedAtMeetingId: uuid("reflected_at_meeting_id").references(
+      () => feedbackForms.id,
+      { onDelete: "set null" },
+    ),
+    overallRating: smallint("overall_rating"), // 1-5 gut read; validated in app
+    reflectionBefore: text("reflection_before"),
+    reflectionPerformance: text("reflection_performance"),
+    reflectionImprovement: text("reflection_improvement"),
+    reflectionLesson: text("reflection_lesson"),
+    reflectionNotes: text("reflection_notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("competition_athlete_reflection_comp_athlete_idx").on(
+      t.competitionId,
+      t.athleteId,
     ),
   ],
 );
@@ -498,6 +660,8 @@ export const feedbackFormsRelations = relations(
     }),
     kataRatings: many(feedbackKataRatings),
     feedbackClips: many(feedbackClips),
+    goals: many(feedbackGoals),
+    actionItems: many(feedbackActionItems),
   }),
 );
 
@@ -510,6 +674,27 @@ export const feedbackKataRatingsRelations = relations(
     }),
     kata: one(kata, {
       fields: [feedbackKataRatings.kataId],
+      references: [kata.id],
+    }),
+  }),
+);
+
+export const feedbackGoalsRelations = relations(feedbackGoals, ({ one }) => ({
+  feedback: one(feedbackForms, {
+    fields: [feedbackGoals.feedbackId],
+    references: [feedbackForms.id],
+  }),
+}));
+
+export const feedbackActionItemsRelations = relations(
+  feedbackActionItems,
+  ({ one }) => ({
+    feedback: one(feedbackForms, {
+      fields: [feedbackActionItems.feedbackId],
+      references: [feedbackForms.id],
+    }),
+    kata: one(kata, {
+      fields: [feedbackActionItems.kataId],
       references: [kata.id],
     }),
   }),
@@ -529,6 +714,24 @@ export const competitionEntriesRelations = relations(
     athlete: one(athletes, {
       fields: [competitionEntries.athleteId],
       references: [athletes.id],
+    }),
+  }),
+);
+
+export const competitionAthleteReflectionRelations = relations(
+  competitionAthleteReflection,
+  ({ one }) => ({
+    competition: one(competitions, {
+      fields: [competitionAthleteReflection.competitionId],
+      references: [competitions.id],
+    }),
+    athlete: one(athletes, {
+      fields: [competitionAthleteReflection.athleteId],
+      references: [athletes.id],
+    }),
+    reflectedAtMeeting: one(feedbackForms, {
+      fields: [competitionAthleteReflection.reflectedAtMeetingId],
+      references: [feedbackForms.id],
     }),
   }),
 );

@@ -3,6 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/i18n/format";
 import { getLocale, getMessages } from "@/i18n/server";
 import type {
+  FeedbackActionRow,
+  FeedbackGoalRow,
   FeedbackKataRatingRow,
   FeedbackRow,
 } from "@/lib/queries/feedback";
@@ -17,6 +19,8 @@ import type {
 export type FeedbackDetailProps = {
   form: FeedbackRow;
   kataRatings?: FeedbackKataRatingRow[];
+  goals?: FeedbackGoalRow[];
+  actions?: FeedbackActionRow[];
 };
 
 function Row({
@@ -47,12 +51,35 @@ function Block({ title, children }: { title: string; children: ReactNode }) {
 export async function FeedbackDetail({
   form,
   kataRatings = [],
+  goals = [],
+  actions = [],
 }: FeedbackDetailProps) {
   const nl = await getMessages();
   const locale = await getLocale();
   const f = nl.feedback;
   const ff = f.fields;
   const isU12 = form.formType === "U12";
+
+  const goalLabel = (cat: FeedbackGoalRow["category"]): string =>
+    cat === "main"
+      ? isU12
+        ? ff.goalMain
+        : ff.goalMainProcess
+      : cat === "performance"
+        ? ff.goalPerformance
+        : cat === "outcome"
+          ? ff.goalOutcome
+          : ff.kataFocus;
+
+  // Group actions by kata for display; general (untagged) first, then per-kata.
+  const generalActions = actions.filter((a) => !a.kataName);
+  const kataGroups = new Map<string, FeedbackActionRow[]>();
+  for (const a of actions) {
+    if (!a.kataName) continue;
+    const list = kataGroups.get(a.kataName) ?? [];
+    list.push(a);
+    kataGroups.set(a.kataName, list);
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -142,23 +169,80 @@ export async function FeedbackDetail({
       </Block>
 
       <Block title={f.goals}>
-        <Row
-          label={isU12 ? ff.goalMain : ff.goalMainProcess}
-          value={form.goalMain}
-        />
-        <Row label={ff.goalPerformance} value={form.goalPerformance} />
-        <Row label={ff.goalOutcome} value={form.goalOutcome} />
-        <Row label={ff.kataFocus} value={form.kataFocus} />
+        {goals.map((g) => (
+          <div key={g.id} className="flex flex-col gap-0.5">
+            <span className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground">
+              {goalLabel(g.category)}
+              {g.status !== "active" ? (
+                <Badge variant="outline">{f.goalStatus[g.status]}</Badge>
+              ) : null}
+            </span>
+            <span className="whitespace-pre-wrap text-sm">{g.text}</span>
+            {g.coachReason ? (
+              <span className="text-xs text-muted-foreground italic">
+                {g.coachReason}
+              </span>
+            ) : null}
+          </div>
+        ))}
         <Row label={ff.periodizationNotes} value={form.periodizationNotes} />
         <Row label={ff.physicalPlan} value={form.physicalPlan} />
       </Block>
 
-      <Block title={f.actionItems}>
-        <Row label={ff.action1} value={form.action1} />
-        <Row label={ff.action2} value={form.action2} />
-        <Row label={ff.action3} value={form.action3} />
-        <Row label={ff.action4} value={form.action4} />
-      </Block>
+      {actions.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <h3 className="text-sm font-semibold">{f.actionItems}</h3>
+          <div className="flex flex-col gap-4">
+            {generalActions.length > 0 ? (
+              <ActionGroup title={f.actions.general} items={generalActions} nl={nl} />
+            ) : null}
+            {[...kataGroups.entries()].map(([kataName, items]) => (
+              <ActionGroup key={kataName} title={kataName} items={items} nl={nl} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function ActionGroup({
+  title,
+  items,
+  nl,
+}: {
+  title: string;
+  items: FeedbackActionRow[];
+  nl: Awaited<ReturnType<typeof getMessages>>;
+}) {
+  const f = nl.feedback;
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {title}
+      </span>
+      {items.map((a) => (
+        <div key={a.id} className="flex flex-col gap-0.5">
+          <span className="flex flex-wrap items-center gap-2 text-sm">
+            {a.text}
+            {a.coachDisposition !== "pending" ? (
+              <Badge variant="outline">{f.disposition[a.coachDisposition]}</Badge>
+            ) : null}
+            {a.carriedFromActionId ? (
+              <Badge variant="outline">{f.goalStatus.carried}</Badge>
+            ) : null}
+          </span>
+          {a.coachNote ? (
+            <span className="text-xs text-muted-foreground">{a.coachNote}</span>
+          ) : null}
+          {a.athleteDisposition ? (
+            <span className="text-xs text-muted-foreground italic">
+              {f.review.athleteClaim}: {f.disposition[a.athleteDisposition]}
+              {a.athleteReason ? ` — “${a.athleteReason}”` : ""}
+            </span>
+          ) : null}
+        </div>
+      ))}
     </div>
   );
 }

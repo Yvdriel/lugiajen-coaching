@@ -5,27 +5,35 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import type { FeedbackFormState } from "@/features/feedback/actions";
 import type { FormType } from "@/features/feedback/form-type";
+import type { CompetitionPrepItem } from "@/features/feedback/schema";
 import { useMessages } from "@/i18n/client";
+import { CompetitionReflectionFields } from "./competition-reflection-fields";
 import {
+  AthleteReviewPanel,
   type FBValues,
+  type FeedbackReview,
   type KataRepertoireItem,
   Section,
   SideAFields,
 } from "./feedback-fields";
 
 /**
- * The athlete's public prepare form: only Side A + kata self-ratings, no header/coach
- * fields. Its own RHF + useActionState wiring (decoupled from the coach FeedbackFormShell).
- * The action is bound to the prepare token by the page.
+ * The athlete's public prepare form: a self-disposition review of the previous
+ * meeting's open items, then Side A + kata self-ratings. No header/coach fields. Its
+ * own RHF + useActionState wiring. The action is bound to the prepare token by the page.
  */
 export function AthletePrepForm({
   formType,
   repertoire,
+  review,
+  competitions = [],
   defaultValues,
   action,
 }: {
   formType: FormType;
   repertoire: KataRepertoireItem[];
+  review: FeedbackReview;
+  competitions?: CompetitionPrepItem[];
   defaultValues: FBValues;
   action: (
     prev: FeedbackFormState,
@@ -53,6 +61,7 @@ export function AthletePrepForm({
   return (
     <form action={formAction} className="flex flex-col gap-6" noValidate>
       <input type="hidden" name="formType" value={formType} />
+      <AthleteReviewPanel review={review} fieldErrors={state.fieldErrors} />
       <Section title={nl.feedback.sideA}>
         <SideAFields
           formType={formType}
@@ -61,6 +70,18 @@ export function AthletePrepForm({
           repertoire={repertoire}
         />
       </Section>
+
+      {competitions.length > 0 ? (
+        <Section title={nl.feedback.competitionSection.heading}>
+          <p className="-mt-1 text-sm text-muted-foreground">
+            {nl.feedback.competitionSection.prepareIntro}
+          </p>
+          <CompetitionReflectionFields
+            competitions={competitions}
+            register={register}
+          />
+        </Section>
+      ) : null}
 
       {state.message ? (
         <p className="text-sm text-destructive">{state.message}</p>

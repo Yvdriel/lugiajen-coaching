@@ -3,14 +3,37 @@
 import Link from "next/link";
 import { type ReactNode, useActionState, useEffect, useState } from "react";
 import { type FieldErrors, type UseFormRegister, useForm } from "react-hook-form";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { FeedbackFormState } from "@/features/feedback/actions";
 import { type FormType, maxMeetingNumber } from "@/features/feedback/form-type";
-import { kataNotesField, kataScoreField } from "@/features/feedback/schema";
+import {
+  ACTION_COUNT_FIELD,
+  actionKataField,
+  actionTextField,
+  type Disposition,
+  kataNotesField,
+  kataScoreField,
+  prepActionDispField,
+  prepActionReasonField,
+  prepGoalDispField,
+  prepGoalReasonField,
+  reviewActionCarryField,
+  reviewActionDispField,
+  reviewActionNoteField,
+  reviewGoalCarryTextField,
+  reviewGoalDispField,
+  reviewGoalMomentumField,
+  reviewGoalReasonField,
+} from "@/features/feedback/schema";
 import { useMessages } from "@/i18n/client";
+
+// Native <select> styling — matches competition-entry-form (no shadcn Select dep).
+const selectClass =
+  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 // Shared primitives for the feedback forms (all templates). All field values are strings
 // (native FormData); the server coerces. RHF register is typed over a string record.
@@ -159,32 +182,400 @@ export function CoachSection({ register }: { register: FBRegister }) {
   );
 }
 
-export function ActionItems({
-  register,
-  formType,
+// ── Dynamic, kata-taggable action items ───────────────────────────────────────
+export type ActionItemDefault = { text: string; kataId: string | null };
+
+type ActionRow = { key: string; text: string; kataId: string };
+let actionRowSeq = 0;
+const blankRow = (text = "", kataId = ""): ActionRow => ({
+  key: `air-${actionRowSeq++}`,
+  text,
+  kataId,
+});
+
+export function ActionItemsList({
+  repertoire,
+  defaultItems,
 }: {
-  register: FBRegister;
-  formType: FormType;
+  repertoire: KataRepertoireItem[];
+  defaultItems: ActionItemDefault[];
 }) {
-  const nl = useMessages();
-  const f = nl.feedback;
+  const f = useMessages().feedback;
+  const [rows, setRows] = useState<ActionRow[]>(() =>
+    defaultItems.length > 0
+      ? defaultItems.map((d) => blankRow(d.text, d.kataId ?? ""))
+      : [blankRow()],
+  );
+
   return (
     <Section title={f.actionItems}>
-      <Field label={f.fields.action1}>
-        <Input {...register("action1")} />
-      </Field>
-      <Field label={f.fields.action2}>
-        <Input {...register("action2")} />
-      </Field>
-      <Field label={f.fields.action3}>
-        <Input {...register("action3")} />
-      </Field>
-      {formType === "SENIOR" ? (
-        <Field label={f.fields.action4}>
-          <Input {...register("action4")} />
+      {/* Row count bounds the server-side parse loop (names re-index by position). */}
+      <input type="hidden" name={ACTION_COUNT_FIELD} value={rows.length} readOnly />
+      <div className="flex flex-col gap-2">
+        {rows.map((row, i) => (
+          <div
+            key={row.key}
+            className="grid gap-2 sm:grid-cols-[1fr_11rem_auto]"
+          >
+            <Input
+              name={actionTextField(i)}
+              defaultValue={row.text}
+              placeholder={f.actions.placeholder}
+              aria-label={`${f.actionItems} ${i + 1}`}
+            />
+            <select
+              name={actionKataField(i)}
+              defaultValue={row.kataId}
+              className={selectClass}
+              aria-label={f.actions.kata}
+            >
+              <option value="">{f.actions.general}</option>
+              {repertoire.map((k) => (
+                <option key={k.kataId} value={k.kataId}>
+                  {k.kataName}
+                </option>
+              ))}
+            </select>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                setRows((rs) => rs.filter((r) => r.key !== row.key))
+              }
+            >
+              {f.actions.remove}
+            </Button>
+          </div>
+        ))}
+        {rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{f.actions.empty}</p>
+        ) : null}
+      </div>
+      <div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setRows((rs) => [...rs, blankRow()])}
+        >
+          {f.actions.add}
+        </Button>
+      </div>
+    </Section>
+  );
+}
+
+// ── Review panel ("Sinds vorige afspraak") ────────────────────────────────────
+export type ReviewGoalItem = {
+  id: string;
+  category: "main" | "performance" | "outcome" | "kata_focus";
+  text: string;
+  athleteDisposition: Disposition | null;
+  athleteReason: string | null;
+};
+export type ReviewActionItem = {
+  id: string;
+  text: string;
+  kataName: string | null;
+  athleteDisposition: Disposition | null;
+  athleteReason: string | null;
+};
+export type FeedbackReview = {
+  goals: ReviewGoalItem[];
+  actions: ReviewActionItem[];
+};
+
+// Coach's goal verdict mapped to the athlete's claim vocabulary, for mismatch.
+function goalVerdictToClaim(v: string): Disposition | null {
+  if (v === "achieved") return "done";
+  if (v === "carried") return "partly";
+  if (v === "dropped") return "not_done";
+  return null;
+}
+
+function AthleteClaim({
+  disposition,
+  reason,
+  mismatch,
+}: {
+  disposition: Disposition;
+  reason: string | null;
+  mismatch: boolean;
+}) {
+  const f = useMessages().feedback;
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+      <span className="font-medium">{f.review.athleteClaim}:</span>
+      <span>{f.disposition[disposition]}</span>
+      {reason ? <span className="italic">“{reason}”</span> : null}
+      {mismatch ? (
+        <Badge variant="outline" className="font-semibold uppercase">
+          {f.review.mismatch}
+        </Badge>
+      ) : null}
+    </div>
+  );
+}
+
+function ReviewGoalRow({
+  goal,
+  fieldErrors,
+}: {
+  goal: ReviewGoalItem;
+  fieldErrors?: Record<string, string>;
+}) {
+  const f = useMessages().feedback;
+  const [verdict, setVerdict] = useState("");
+  const coachClaim = goalVerdictToClaim(verdict);
+  const mismatch =
+    !!goal.athleteDisposition &&
+    !!coachClaim &&
+    goal.athleteDisposition !== coachClaim;
+  const needsReason = verdict === "dropped" || verdict === "carried";
+  return (
+    <div className="flex flex-col gap-2 rounded-md border p-3">
+      <span className="text-sm font-medium">{goal.text}</span>
+      {goal.athleteDisposition ? (
+        <AthleteClaim
+          disposition={goal.athleteDisposition}
+          reason={goal.athleteReason}
+          mismatch={mismatch}
+        />
+      ) : null}
+      <div className="grid gap-2 sm:grid-cols-2">
+        <select
+          name={reviewGoalDispField(goal.id)}
+          className={selectClass}
+          value={verdict}
+          onChange={(e) => setVerdict(e.target.value)}
+          aria-label={goal.text}
+        >
+          <option value="">{f.review.choose}</option>
+          <option value="achieved">{f.review.goalAchieved}</option>
+          <option value="carried">{f.review.goalCarried}</option>
+          <option value="dropped">{f.review.goalDropped}</option>
+        </select>
+        {verdict === "carried" ? (
+          <select
+            name={reviewGoalMomentumField(goal.id)}
+            className={selectClass}
+            defaultValue=""
+            aria-label={f.review.momentum}
+          >
+            <option value="">{f.review.momentum}…</option>
+            <option value="progressing">{f.review.momentumProgressing}</option>
+            <option value="stalled">{f.review.momentumStalled}</option>
+          </select>
+        ) : null}
+      </div>
+      {verdict === "carried" && fieldErrors?.[reviewGoalMomentumField(goal.id)] ? (
+        <p className="text-sm text-destructive">
+          {fieldErrors[reviewGoalMomentumField(goal.id)]}
+        </p>
+      ) : null}
+      {needsReason ? (
+        <Field
+          label={f.review.reason}
+          error={fieldErrors?.[reviewGoalReasonField(goal.id)]}
+        >
+          <Input
+            name={reviewGoalReasonField(goal.id)}
+            placeholder={f.review.reasonPlaceholder}
+          />
         </Field>
       ) : null}
-    </Section>
+      {verdict === "carried" ? (
+        <Field label={f.review.carry}>
+          <Input
+            name={reviewGoalCarryTextField(goal.id)}
+            defaultValue={goal.text}
+          />
+        </Field>
+      ) : null}
+    </div>
+  );
+}
+
+function ReviewActionRow({ action }: { action: ReviewActionItem }) {
+  const f = useMessages().feedback;
+  const [verdict, setVerdict] = useState("");
+  const mismatch =
+    !!action.athleteDisposition &&
+    verdict !== "" &&
+    action.athleteDisposition !== verdict;
+  return (
+    <div className="flex flex-col gap-2 rounded-md border p-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-medium">{action.text}</span>
+        <Badge variant="outline">{action.kataName ?? f.actions.general}</Badge>
+      </div>
+      {action.athleteDisposition ? (
+        <AthleteClaim
+          disposition={action.athleteDisposition}
+          reason={action.athleteReason}
+          mismatch={mismatch}
+        />
+      ) : null}
+      <div className="grid gap-2 sm:grid-cols-2">
+        <select
+          name={reviewActionDispField(action.id)}
+          className={selectClass}
+          value={verdict}
+          onChange={(e) => setVerdict(e.target.value)}
+          aria-label={action.text}
+        >
+          <option value="">{f.review.choose}</option>
+          <option value="done">{f.disposition.done}</option>
+          <option value="partly">{f.disposition.partly}</option>
+          <option value="not_done">{f.disposition.not_done}</option>
+        </select>
+        <Input
+          name={reviewActionNoteField(action.id)}
+          placeholder={f.review.note}
+        />
+      </div>
+      {verdict !== "" && verdict !== "done" ? (
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" name={reviewActionCarryField(action.id)} />
+          {f.review.carry}
+        </label>
+      ) : null}
+    </div>
+  );
+}
+
+export function ReviewPanel({
+  review,
+  fieldErrors,
+}: {
+  review: FeedbackReview;
+  fieldErrors?: Record<string, string>;
+}) {
+  const f = useMessages().feedback;
+  if (review.goals.length === 0 && review.actions.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-4 rounded-md border border-dashed p-4">
+      <span className="text-sm font-semibold">{f.review.title}</span>
+      {review.goals.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {f.review.goalsTitle}
+          </span>
+          {review.goals.map((g) => (
+            <ReviewGoalRow key={g.id} goal={g} fieldErrors={fieldErrors} />
+          ))}
+        </div>
+      ) : null}
+      {review.actions.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {f.review.actionsTitle}
+          </span>
+          {review.actions.map((a) => (
+            <ReviewActionRow key={a.id} action={a} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// ── Athlete self-disposition (prepare flow, Side A) ───────────────────────────
+function AthleteReviewRow({
+  text,
+  kataName,
+  dispField,
+  reasonField,
+  fieldErrors,
+}: {
+  text: string;
+  kataName: string | null;
+  dispField: string;
+  reasonField: string;
+  fieldErrors?: Record<string, string>;
+}) {
+  const f = useMessages().feedback;
+  const [disp, setDisp] = useState("");
+  const needsReason = disp === "partly" || disp === "not_done";
+  return (
+    <div className="flex flex-col gap-2 rounded-md border p-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-medium">{text}</span>
+        {kataName ? <Badge variant="outline">{kataName}</Badge> : null}
+      </div>
+      <select
+        name={dispField}
+        className={selectClass}
+        value={disp}
+        onChange={(e) => setDisp(e.target.value)}
+        aria-label={text}
+      >
+        <option value="">{f.review.choose}</option>
+        <option value="done">{f.disposition.done}</option>
+        <option value="partly">{f.disposition.partly}</option>
+        <option value="not_done">{f.disposition.not_done}</option>
+      </select>
+      {needsReason ? (
+        <Field label={f.review.reason} error={fieldErrors?.[reasonField]}>
+          <Textarea
+            name={reasonField}
+            rows={2}
+            placeholder={f.review.reasonPlaceholder}
+          />
+        </Field>
+      ) : null}
+    </div>
+  );
+}
+
+export function AthleteReviewPanel({
+  review,
+  fieldErrors,
+}: {
+  review: FeedbackReview;
+  fieldErrors?: Record<string, string>;
+}) {
+  const f = useMessages().feedback;
+  if (review.goals.length === 0 && review.actions.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-4 rounded-md border border-dashed p-4">
+      <span className="text-sm font-semibold">{f.review.title}</span>
+      {review.goals.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {f.review.goalsTitle}
+          </span>
+          {review.goals.map((g) => (
+            <AthleteReviewRow
+              key={g.id}
+              text={g.text}
+              kataName={null}
+              dispField={prepGoalDispField(g.id)}
+              reasonField={prepGoalReasonField(g.id)}
+              fieldErrors={fieldErrors}
+            />
+          ))}
+        </div>
+      ) : null}
+      {review.actions.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {f.review.actionsTitle}
+          </span>
+          {review.actions.map((a) => (
+            <AthleteReviewRow
+              key={a.id}
+              text={a.text}
+              kataName={a.kataName ?? f.actions.general}
+              dispField={prepActionDispField(a.id)}
+              reasonField={prepActionReasonField(a.id)}
+              fieldErrors={fieldErrors}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -405,6 +796,12 @@ export type FeedbackFormShellProps = {
   athleteId: string;
   feedbackId?: string;
   defaultValues: FBValues;
+  // Repertoire feeds the action-item kata picker (empty for U12 → general only).
+  repertoire?: KataRepertoireItem[];
+  // Existing (non-carried) action rows to pre-fill the dynamic list on edit.
+  actionDefaults?: ActionItemDefault[];
+  // Previous meeting's open goals + pending actions for the review panel.
+  review?: FeedbackReview;
   action: (
     prev: FeedbackFormState,
     formData: FormData,
@@ -431,6 +828,9 @@ export function FeedbackFormShell({
   athleteId,
   feedbackId,
   defaultValues,
+  repertoire,
+  actionDefaults,
+  review,
   action,
   submitLabel,
   children,
@@ -464,8 +864,14 @@ export function FeedbackFormShell({
         errors={errors}
         maxMeeting={maxMeetingNumber(formType)}
       />
+      {review ? (
+        <ReviewPanel review={review} fieldErrors={state.fieldErrors} />
+      ) : null}
       {children(register, errors)}
-      <ActionItems register={register} formType={formType} />
+      <ActionItemsList
+        repertoire={repertoire ?? []}
+        defaultItems={actionDefaults ?? []}
+      />
 
       {state.message ? (
         <p className="text-sm text-destructive">{state.message}</p>

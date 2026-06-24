@@ -26,7 +26,9 @@ import { getAthleteByViewToken } from "@/lib/queries/athletes";
 import { getAthleteCompetitions } from "@/lib/queries/competitions";
 import {
   getCompletedFeedbackForms,
+  getFeedbackActionItemsByFeedbackIds,
   getFeedbackClipsByFeedbackIds,
+  getFeedbackGoalsByFeedbackIds,
   getFeedbackKataRatingsByAthlete,
   getPendingPrepareForm,
 } from "@/lib/queries/feedback";
@@ -110,9 +112,12 @@ export default async function PortalPage({
   // Parent-meeting reels for completed gesprekken. Tokens are minted server-side;
   // the page is already consent-gated (isPortalBlocked above), so reel playback
   // rides that same gate — no separate per-video check (decision 2026-06-24).
-  const reelsByForm = await getFeedbackClipsByFeedbackIds(
-    feedback.map((f) => f.id),
-  );
+  const feedbackIds = feedback.map((f) => f.id);
+  const [reelsByForm, goalsByForm, actionsByForm] = await Promise.all([
+    getFeedbackClipsByFeedbackIds(feedbackIds),
+    getFeedbackGoalsByFeedbackIds(feedbackIds),
+    getFeedbackActionItemsByFeedbackIds(feedbackIds),
+  ]);
   const reelPlayers = new Map<string, ReelPlayerClip[]>();
   for (const f of feedback) {
     const ready = playableReelClips(reelsByForm.get(f.id) ?? []);
@@ -137,6 +142,9 @@ export default async function PortalPage({
     latestCards,
     feedback,
     kataNames,
+    latestActions: (actionsByForm.get(feedback[0]?.id ?? "") ?? []).map(
+      (it) => it.text,
+    ),
   });
 
   const lastDateByKata = new Map(
@@ -305,6 +313,8 @@ export default async function PortalPage({
                       <FeedbackDetail
                         form={form}
                         kataRatings={feedbackKataRatings.get(form.id) ?? []}
+                        goals={goalsByForm.get(form.id) ?? []}
+                        actions={actionsByForm.get(form.id) ?? []}
                       />
                       {reelPlayers.get(form.id) ? (
                         <section className="flex flex-col gap-3 border-t border-border pt-4">
@@ -327,6 +337,7 @@ export default async function PortalPage({
             rows={competitions}
             kataNames={kataNames}
             mode="public"
+            latestCompletedMeetingDate={feedback[0]?.meetingDate ?? null}
           />
         </TabsContent>
       </Tabs>

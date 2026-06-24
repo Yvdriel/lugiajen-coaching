@@ -93,15 +93,15 @@ describe("buildAthleteStats", () => {
       goalOutcome: null,
       kataFocus: "Kanku Dai",
       coachDevelopmentArea: "Standen verdiepen",
-      action1: "Extra core",
-      action2: null,
-      action3: "",
     },
   ] as unknown as FeedbackRow[];
 
+  // Action items are rows now, passed in as `latestActions` (the latest meeting's).
+  const latestActions = ["Extra core"];
+
   const latestCards = [
     { priorityImprovements: "Snelheid in finale" },
-    { priorityImprovements: "Extra core" }, // dup of action1 → deduped
+    { priorityImprovements: "Extra core" }, // dup of an action → deduped
     { priorityImprovements: null },
   ] as unknown as ScoringCardRow[];
 
@@ -114,6 +114,7 @@ describe("buildAthleteStats", () => {
       latestCards,
       feedback,
       kataNames,
+      latestActions,
     });
 
     expect(s.competition.totalEvents).toBe(1);

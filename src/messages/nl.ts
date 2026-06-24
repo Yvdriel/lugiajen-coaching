@@ -313,6 +313,48 @@ export const nl = {
       addedByCoach: "Coach",
       addedByAthlete: "Atleet",
     },
+    // Review loop — surfacing the previous meeting's open goals + pending actions.
+    review: {
+      title: "Sinds vorige afspraak",
+      goalsTitle: "Open doelen",
+      actionsTitle: "Openstaande acties",
+      none: "Geen openstaande punten van het vorige gesprek.",
+      athleteClaim: "Atleet",
+      mismatch: "Wijkt af",
+      carry: "Meenemen naar dit gesprek",
+      reason: "Reden",
+      reasonPlaceholder: "Korte toelichting",
+      note: "Notitie van de coach",
+      choose: "Kies…",
+      goalAchieved: "Bereikt",
+      goalCarried: "Meenemen",
+      goalDropped: "Laten vallen",
+      momentum: "Momentum",
+      momentumProgressing: "Vooruitgang",
+      momentumStalled: "Stilstand",
+    },
+    // Disposition labels — shared by coach action verdicts and athlete self-claims.
+    disposition: {
+      pending: "Nog te bespreken",
+      done: "Gehaald",
+      partly: "Deels",
+      not_done: "Niet gehaald",
+    },
+    goalStatus: {
+      active: "Actief",
+      achieved: "Bereikt",
+      carried: "Meegenomen",
+      dropped: "Vervallen",
+    },
+    // Dynamic action list.
+    actions: {
+      add: "Actie toevoegen",
+      remove: "Verwijderen",
+      placeholder: "Wat gaan we doen?",
+      general: "Algemeen",
+      kata: "Kata",
+      empty: "Nog geen actiepunten.",
+    },
     fields: {
       athleteProudOf: "Waar ben je trots op?",
       athleteHardestThing: "Wat vond je het moeilijkst?",
@@ -356,10 +398,23 @@ export const nl = {
       periodizationNotes:
         "Trainingsplanning — waar zitten we en wat komt eraan?",
       physicalPlan: "Afspraken fysiek (S&C, mobiliteit, herstel, preventie)",
-      action1: "Actie 1",
-      action2: "Actie 2",
-      action3: "Actie 3",
-      action4: "Actie 4",
+    },
+    // Competition section in the meeting (CADET+). Athlete reflection during prep,
+    // paired against the coach's per-entry feedback at the meeting.
+    competitionSection: {
+      heading: "Wedstrijden sinds vorige gesprek",
+      prepareIntro:
+        "Blik terug op je wedstrijd(en) sinds het vorige gesprek. Vul je eigen reflectie in — je coach deelt zijn feedback tijdens jullie gesprek.",
+      empty: "Geen wedstrijden sinds het vorige gesprek.",
+      rating: "Hoe ging het, gevoelsmatig? (1-5)",
+      before: "Hoe voelde ik me vooraf en hoe had ik me voorbereid?",
+      performance: "Wat ging er goed?",
+      improvement: "Wat wil ik verbeteren?",
+      lesson: "Wat is mijn belangrijkste les?",
+      notes: "Hoe ging het in het algemeen?",
+      athleteColumn: "Atleet",
+      coachColumn: "Coach",
+      noReflection: "Atleet heeft nog geen reflectie ingevuld.",
     },
   },
   competition: {

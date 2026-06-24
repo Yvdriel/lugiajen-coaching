@@ -2,7 +2,10 @@ import { buildAthleteStats } from "@/lib/athlete-stats";
 import { calculateAge, getCategories, type Category } from "@/lib/categories";
 import type { getAthleteById } from "@/lib/queries/athletes";
 import { getAthleteCompetitions } from "@/lib/queries/competitions";
-import { getFeedbackForms } from "@/lib/queries/feedback";
+import {
+  getFeedbackActionItems,
+  getFeedbackForms,
+} from "@/lib/queries/feedback";
 import { getAthleteKata, getKataLibrary } from "@/lib/queries/kata";
 import { getLatestCardsPerKata } from "@/lib/queries/scoring";
 
@@ -27,12 +30,16 @@ export async function loadOnePager(athlete: AthleteRow): Promise<{
       getKataLibrary(),
     ]);
   const kataNames = new Map(kataLib.map((k) => [k.id, k.name]));
+  const latestActions = (
+    await getFeedbackActionItems(feedback[0]?.id ?? "")
+  ).map((it) => it.text);
   const stats = buildAthleteStats({
     competitions,
     repertoire,
     latestCards,
     feedback,
     kataNames,
+    latestActions,
   });
   const dob = new Date(athlete.dateOfBirth);
   return { age: calculateAge(dob), categories: getCategories(dob), stats };

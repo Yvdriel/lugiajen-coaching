@@ -14,6 +14,9 @@ export type AthleteCompetitionsProps = {
   rows: AthleteCompetitionRow[];
   kataNames: Map<string, string>;
   mode?: "coach" | "public";
+  // Public surface: the athlete's most recent completed meeting date. A competition's
+  // coach feedback is revealed once a completed meeting has happened on/after it.
+  latestCompletedMeetingDate?: string | null;
 };
 
 function Stat({ label, value }: { label: string; value: string | number }) {
@@ -29,6 +32,7 @@ export async function AthleteCompetitions({
   rows,
   kataNames,
   mode = "coach",
+  latestCompletedMeetingDate = null,
 }: AthleteCompetitionsProps) {
   const nl = await getMessages();
   const locale = await getLocale();
@@ -59,24 +63,35 @@ export async function AthleteCompetitions({
       </div>
 
       <ul className="flex flex-col gap-3">
-        {rows.map((row) => (
-          <li
-            key={row.entry.id}
-            className="flex flex-col gap-3 rounded-lg border border-border p-4"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <p className="font-medium">{row.competitionName}</p>
-                <p className="text-sm text-muted-foreground">
-                  {formatDate(row.competitionDate, locale)} ·{" "}
-                  {row.entry.category}
-                </p>
+        {rows.map((row) => {
+          const revealCoachFeedback =
+            mode === "coach" ||
+            (latestCompletedMeetingDate != null &&
+              row.competitionDate <= latestCompletedMeetingDate);
+          return (
+            <li
+              key={row.entry.id}
+              className="flex flex-col gap-3 rounded-lg border border-border p-4"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="font-medium">{row.competitionName}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {formatDate(row.competitionDate, locale)} ·{" "}
+                    {row.entry.category}
+                  </p>
+                </div>
+                <Badge variant="outline">{c.types[row.competitionType]}</Badge>
               </div>
-              <Badge variant="outline">{c.types[row.competitionType]}</Badge>
-            </div>
-            <EntryBody entry={row.entry} kataNames={kataNames} mode={mode} />
-          </li>
-        ))}
+              <EntryBody
+                entry={row.entry}
+                kataNames={kataNames}
+                mode={mode}
+                revealCoachFeedback={revealCoachFeedback}
+              />
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

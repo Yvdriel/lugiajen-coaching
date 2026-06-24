@@ -8,7 +8,9 @@ import {
   athletes,
   competitionEntries,
   competitions,
+  feedbackActionItems,
   feedbackForms,
+  feedbackGoals,
   kata,
   kataScoringCards,
   user,
@@ -184,17 +186,31 @@ async function seedSampleAthlete() {
     },
   ]);
 
-  await db.insert(feedbackForms).values({
-    athleteId: athlete.id,
-    formType: "U12",
-    meetingNumber: 1,
-    meetingDate: "2026-02-01",
-    season: "2025/2026",
-    athleteProudOf: "Mijn Heian Yondan.",
-    athleteHardestThing: "Stilstaan na de kata.",
-    athleteFunScore: 5,
-    goalMain: "Elke training op tijd en gefocust.",
-    action1: "Twee keer per week extra core-oefeningen.",
+  const [seededForm] = await db
+    .insert(feedbackForms)
+    .values({
+      athleteId: athlete.id,
+      formType: "U12",
+      meetingNumber: 1,
+      meetingDate: "2026-02-01",
+      season: "2025/2026",
+      athleteProudOf: "Mijn Heian Yondan.",
+      athleteHardestThing: "Stilstaan na de kata.",
+      athleteFunScore: 5,
+      goalMain: "Elke training op tijd en gefocust.",
+    })
+    .returning({ id: feedbackForms.id });
+  // Goals + action items are first-class rows now.
+  await db.insert(feedbackGoals).values({
+    feedbackId: seededForm.id,
+    category: "main",
+    text: "Elke training op tijd en gefocust.",
+    sortOrder: 0,
+  });
+  await db.insert(feedbackActionItems).values({
+    feedbackId: seededForm.id,
+    text: "Twee keer per week extra core-oefeningen.",
+    sortOrder: 0,
   });
 
   const [comp] = await db

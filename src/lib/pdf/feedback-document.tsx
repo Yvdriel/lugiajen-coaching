@@ -1,7 +1,10 @@
 import { Document, Page, View } from "@react-pdf/renderer";
 import { formatDate } from "@/i18n/format";
 import type { Locale, Messages } from "@/messages";
+import type { MeetingCompetition } from "@/lib/queries/competition-reflections";
 import type {
+  FeedbackActionRow,
+  FeedbackGoalRow,
   FeedbackKataRatingRow,
   FeedbackRow,
 } from "@/lib/queries/feedback";
@@ -17,16 +20,29 @@ export function FeedbackDocument({
   athlete,
   form,
   kataRatings = [],
+  goals = [],
+  actions = [],
+  competitions = [],
   m,
   locale,
 }: {
   athlete: Athlete;
   form: FeedbackRow;
   kataRatings?: FeedbackKataRatingRow[];
+  goals?: FeedbackGoalRow[];
+  actions?: FeedbackActionRow[];
+  competitions?: MeetingCompetition[];
   m: Messages;
   locale: Locale;
 }) {
-  const sections = feedbackSections(form, m, kataRatings);
+  const sections = feedbackSections(
+    form,
+    m,
+    kataRatings,
+    goals,
+    actions,
+    competitions,
+  );
   const name = `${athlete.firstName} ${athlete.lastName}`;
   const subtitle = `${name} · ${m.feedback.meeting} ${form.meetingNumber} · ${formatDate(form.meetingDate, locale)} · ${form.season} · ${form.formType}`;
 
@@ -38,8 +54,8 @@ export function FeedbackDocument({
           <View key={s.title} style={styles.section} wrap={false}>
             <SectionTitle>{s.title}</SectionTitle>
             <View style={styles.twoCol}>
-              {s.fields.map((f) => (
-                <View key={f.label} style={styles.col}>
+              {s.fields.map((f, i) => (
+                <View key={`${f.label}-${i}`} style={styles.col}>
                   <Field label={f.label} value={f.value} />
                 </View>
               ))}

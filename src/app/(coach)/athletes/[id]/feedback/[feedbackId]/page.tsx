@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AthleteAnswers } from "@/components/display/athlete-answers";
+import { CompetitionMeetingPanel } from "@/components/display/competition-meeting-panel";
 import { FeedbackDetail } from "@/components/display/feedback-detail";
 import { FeedbackReelSection } from "@/components/clips/feedback-reel-section";
 import { FeedbackFormCadet } from "@/components/forms/feedback-form-cadet";
@@ -16,14 +17,19 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { resolveRecipient } from "@/features/athletes/consent";
 import { completeFeedback, updateFeedback } from "@/features/feedback/actions";
+import { loadMeetingCompetitions } from "@/features/feedback/competitions";
+import { showsCompetitionSection } from "@/features/feedback/form-type";
 import { isReelEditable } from "@/features/feedback/reel-order";
+import { loadReview } from "@/features/feedback/review";
 import {
   feedbackToValues,
   kataRatingValues,
 } from "@/features/feedback/values";
 import { getAthleteById } from "@/lib/queries/athletes";
 import {
+  getFeedbackActionItems,
   getFeedbackById,
+  getFeedbackGoals,
   getFeedbackKataRatings,
 } from "@/lib/queries/feedback";
 import { getAthleteKata } from "@/lib/queries/kata";
@@ -41,11 +47,13 @@ export default async function FeedbackDetailPage({
   const locale = await getLocale();
   const { id, feedbackId } = await params;
   const { edit } = await searchParams;
-  const [a, form, kata, kataRatings] = await Promise.all([
+  const [a, form, kata, kataRatings, goals, actions] = await Promise.all([
     getAthleteById(id),
     getFeedbackById(feedbackId),
     getAthleteKata(id),
     getFeedbackKataRatings(feedbackId),
+    getFeedbackGoals(feedbackId),
+    getFeedbackActionItems(feedbackId),
   ]);
   if (!a || !form || form.athleteId !== a.id) notFound();
 
@@ -60,10 +68,34 @@ export default async function FeedbackDetailPage({
   const isDraft = form.status === "awaiting_athlete";
   const isSubmitted = form.status === "athlete_submitted";
   const editing = edit === "1" && !isDraft;
+  // Competition section (CADET+): the window of competitions since the previous
+  // meeting, coach feedback paired with the athlete's reflection. Skipped for U12 and
+  // for the bare draft (no meeting yet).
+  const showCompetitions = showsCompetitionSection(form.formType) && !isDraft;
+  const meetingCompetitions = showCompetitions
+    ? await loadMeetingCompetitions({
+        id: form.id,
+        athleteId: a.id,
+        meetingDate: form.meetingDate,
+        createdAt: form.createdAt,
+      })
+    : [];
   // The reel may be curated only before the meeting; during (editing) + after
   // (completed) it is play-only.
   const reelEditable = isReelEditable(form.status, editing);
   const repertoire = kata.map((k) => ({ kataId: k.kataId, kataName: k.kataName }));
+  // Pre-fill the dynamic action list from this meeting's own (non-carried) rows.
+  const actionDefaults = actions
+    .filter((it) => it.carriedFromActionId == null)
+    .map((it) => ({ text: it.text, kataId: it.kataId }));
+  // Review the previous meeting's open items while editing this one.
+  const review = editing
+    ? await loadReview(a.id, {
+        id: form.id,
+        meetingDate: form.meetingDate,
+        createdAt: form.createdAt,
+      })
+    : undefined;
 
   // Editing a submitted draft IS the in-person meeting: finalize via completeFeedback
   // and soft-lock the athlete's Side A. Editing a completed form is a plain update.
@@ -74,6 +106,8 @@ export default async function FeedbackDetailPage({
       ...feedbackToValues(form),
       ...kataRatingValues(repertoire, kataRatings),
     },
+    actionDefaults,
+    review,
     action: isSubmitted ? completeFeedback : updateFeedback,
     submitLabel: isSubmitted ? f.complete : nl.common.save,
     lockSideA: isSubmitted,
@@ -191,8 +225,22 @@ export default async function FeedbackDetailPage({
           </section>
         </div>
       ) : (
-        <FeedbackDetail form={form} kataRatings={kataRatings} />
+        <FeedbackDetail
+          form={form}
+          kataRatings={kataRatings}
+          goals={goals}
+          actions={actions}
+        />
       )}
+
+      {showCompetitions ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="font-heading text-lg font-semibold">
+            {f.competitionSection.heading}
+          </h2>
+          <CompetitionMeetingPanel competitions={meetingCompetitions} />
+        </section>
+      ) : null}
 
       {/* Clip reel — curate before the meeting; play-only during/after it. */}
       <FeedbackReelSection
