@@ -121,7 +121,7 @@ export async function StatsOverview({
                 <li key={k.kataName} className="flex justify-between">
                   <span>{k.kataName}</span>
                   <span className="text-muted-foreground tabular-nums">
-                    {nl.kata.proficiency} {k.proficiency}
+                    {nl.kata.proficiency} {k.proficiency ?? "—"}
                   </span>
                 </li>
               ))}

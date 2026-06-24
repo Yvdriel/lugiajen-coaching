@@ -121,7 +121,7 @@ export function AthleteDocument({
                   <StatRow
                     key={k.kataName}
                     label={k.kataName}
-                    value={`${m.kata.proficiency} ${k.proficiency}`}
+                    value={`${m.kata.proficiency} ${k.proficiency ?? "—"}`}
                   />
                 ))
               )}

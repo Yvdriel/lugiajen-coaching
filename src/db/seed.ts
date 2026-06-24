@@ -148,7 +148,6 @@ async function seedSampleAthlete() {
       kataId: heianYondan.id,
       roundOrder: 1,
       isCompetitionKata: true,
-      proficiency: 60,
       notes: "Sterke transitions; kime kan beter.",
     },
     {
@@ -156,7 +155,6 @@ async function seedSampleAthlete() {
       kataId: bassaiDai.id,
       roundOrder: 2,
       isCompetitionKata: true,
-      proficiency: 50,
     },
   ]);
 
@@ -169,7 +167,6 @@ async function seedSampleAthlete() {
       stances: 60, techniques: 60, transitions: 50, timing: 60,
       breathing: 60, kiai: 70, kime: 50, conformance: 60,
       strength: 60, speed: 60, balance: 50, rhythm: 60,
-      overallImpression: 60,
       priorityImprovements: "Kime aanscherpen; balans in draaien.",
       strengths: "Goede ademhaling en kiai.",
     },
@@ -180,7 +177,6 @@ async function seedSampleAthlete() {
       stances: 70, techniques: 70, transitions: 60, timing: 70,
       breathing: 60, kiai: 80, kime: 70, conformance: 70,
       strength: 70, speed: 70, balance: 60, rhythm: 70,
-      overallImpression: 70,
       priorityImprovements: "Snelheid in eindsequentie.",
       strengths: "Kime sterk verbeterd.",
     },

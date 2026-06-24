@@ -71,6 +71,13 @@
       "when": 1782296727092,
       "tag": "0009_amused_tarot",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1782308656433,
+      "tag": "0010_narrow_blazing_skull",
+      "breakpoints": true
     }
   ]
 }

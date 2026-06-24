@@ -35,7 +35,6 @@ function parseRepertoire(formData: FormData) {
   return athleteKataSchema.safeParse({
     roundOrder: formData.get("roundOrder"),
     isCompetitionKata: formData.get("isCompetitionKata"),
-    proficiency: formData.get("proficiency"),
     notes: formData.get("notes"),
   });
 }
@@ -62,7 +61,6 @@ export async function assignKata(
     kataId,
     roundOrder: d.roundOrder ?? null,
     isCompetitionKata: d.isCompetitionKata,
-    proficiency: d.proficiency,
     notes: d.notes ?? null,
   });
   revalidatePath(`/athletes/${athleteId}`);
@@ -88,7 +86,6 @@ export async function updateAthleteKata(
     .set({
       roundOrder: d.roundOrder ?? null,
       isCompetitionKata: d.isCompetitionKata,
-      proficiency: d.proficiency,
       notes: d.notes ?? null,
     })
     .where(eq(athleteKata.id, id));

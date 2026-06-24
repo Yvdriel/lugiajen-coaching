@@ -82,8 +82,8 @@ describe("winLossPerRound", () => {
 
 describe("buildAthleteStats", () => {
   const repertoire = [
-    { kataName: "Kanku Dai", proficiency: 8, roundOrder: 1, isCompetitionKata: true },
-    { kataName: "Heian Godan", proficiency: 5, roundOrder: null, isCompetitionKata: false },
+    { kataId: "k1", kataName: "Kanku Dai", roundOrder: 1, isCompetitionKata: true },
+    { kataId: "k2", kataName: "Heian Godan", roundOrder: null, isCompetitionKata: false },
   ] as unknown as AthleteKataItem[];
 
   const feedback = [
@@ -99,10 +99,11 @@ describe("buildAthleteStats", () => {
   // Action items are rows now, passed in as `latestActions` (the latest meeting's).
   const latestActions = ["Extra core"];
 
+  // Kata level = latest card's overall, keyed by kataId. k1 (Kanku Dai) → 8.
   const latestCards = [
-    { priorityImprovements: "Snelheid in finale" },
-    { priorityImprovements: "Extra core" }, // dup of an action → deduped
-    { priorityImprovements: null },
+    { kataId: "k1", overallImpression: 8, priorityImprovements: "Snelheid in finale" },
+    { kataId: "x2", overallImpression: 5, priorityImprovements: "Extra core" }, // dup of an action → deduped
+    { kataId: "x3", overallImpression: 7, priorityImprovements: null },
   ] as unknown as ScoringCardRow[];
 
   it("assembles competition + repertoire + goals + focus points", () => {

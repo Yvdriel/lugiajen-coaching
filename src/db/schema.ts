@@ -177,7 +177,7 @@ export const athleteKata = pgTable("athlete_kata", {
     .references(() => kata.id, { onDelete: "cascade" }),
   roundOrder: integer("round_order"),
   isCompetitionKata: boolean("is_competition_kata").notNull().default(false),
-  proficiency: integer("proficiency").notNull().default(1), // 0-100
+  // kata level (proficiency) is derived from the latest scoring card — not stored.
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at")
@@ -212,8 +212,7 @@ export const kataScoringCards = pgTable(
     speed: integer("speed").notNull(),
     balance: integer("balance").notNull(),
     rhythm: integer("rhythm").notNull(),
-    // overall + notes
-    overallImpression: integer("overall_impression").notNull(),
+    // overall impression is derived (mean of the 12 criteria), not stored — see criteria.ts
     kataSpecificNotes: text("kata_specific_notes"),
     priorityImprovements: text("priority_improvements"),
     strengths: text("strengths"),

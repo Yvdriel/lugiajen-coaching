@@ -31,8 +31,7 @@ export const scoringCardSchema = z.object({
   speed: score,
   balance: score,
   rhythm: score,
-  // overall
-  overallImpression: score,
+  // overall impression is derived (mean of the 12 above), not entered — see criteria.ts
   // free text
   kataSpecificNotes: optText,
   priorityImprovements: optText,

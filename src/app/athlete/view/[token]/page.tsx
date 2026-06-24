@@ -150,8 +150,13 @@ export default async function PortalPage({
   const lastDateByKata = new Map(
     latestCards.map((c) => [c.kataId, c.assessmentDate]),
   );
+  // Kata level = latest card's (derived) overall impression; no card → null → "—".
+  const profByKata = new Map(
+    latestCards.map((c) => [c.kataId, c.overallImpression]),
+  );
   const kataItems: KataRepertoireItem[] = repertoire.map((item) => ({
     ...item,
+    proficiency: profByKata.get(item.kataId) ?? null,
     lastAssessmentDate: lastDateByKata.get(item.kataId) ?? null,
     trend: seriesByKata.get(item.kataId) ?? [],
   }));

@@ -71,16 +71,6 @@ export function AssignKataForm({
           <Label>{k.roundOrder}</Label>
           <Input type="number" min={1} max={20} name="roundOrder" />
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label>{k.proficiency}</Label>
-          <Input
-            type="number"
-            min={0}
-            max={100}
-            name="proficiency"
-            defaultValue={1}
-          />
-        </div>
       </div>
 
       <label className="flex w-fit items-center gap-2 text-sm">

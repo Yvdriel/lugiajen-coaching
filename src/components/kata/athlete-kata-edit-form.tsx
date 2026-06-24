@@ -16,7 +16,6 @@ import type { AthleteKataItem } from "@/lib/queries/kata";
 
 type Values = {
   roundOrder: string;
-  proficiency: string;
   isCompetitionKata: boolean;
   notes: string;
 };
@@ -41,7 +40,6 @@ export function AthleteKataEditForm({
     mode: "onBlur",
     defaultValues: {
       roundOrder: item.roundOrder != null ? String(item.roundOrder) : "",
-      proficiency: String(item.proficiency),
       isCompetitionKata: item.isCompetitionKata,
       notes: item.notes ?? "",
     },
@@ -73,15 +71,6 @@ export function AthleteKataEditForm({
           <Input type="number" min={1} max={20} {...register("roundOrder")} />
           {errors.roundOrder?.message ? (
             <p className="text-sm text-destructive">{errors.roundOrder.message}</p>
-          ) : null}
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label>{k.proficiency}</Label>
-          <Input type="number" min={0} max={100} {...register("proficiency")} />
-          {errors.proficiency?.message ? (
-            <p className="text-sm text-destructive">
-              {errors.proficiency.message}
-            </p>
           ) : null}
         </div>
       </div>

@@ -20,6 +20,7 @@ import type { AthleteKataItem } from "@/lib/queries/kata";
  * Ch10's public portal reuses it with `mode="public"` and no `actions`.
  */
 export type KataRepertoireItem = AthleteKataItem & {
+  proficiency: number | null; // derived from latest card's overall; null = no card yet
   lastAssessmentDate: string | null;
   trend: number[]; // overall-impression trajectory, oldest→newest
 };
@@ -82,7 +83,7 @@ export async function KataRepertoire({
               {item.roundOrder ?? "—"}
             </TableCell>
             <TableCell className="text-right tabular-nums">
-              {item.proficiency}/100
+              {item.proficiency == null ? "—" : `${item.proficiency}/100`}
             </TableCell>
             <TableCell className="text-muted-foreground">
               {fmtDate(item.lastAssessmentDate)}

@@ -25,7 +25,7 @@ export type AthleteStats = {
   };
   repertoire: {
     kataName: string;
-    proficiency: number;
+    proficiency: number | null; // derived from latest card's overall; null = no card yet
     roundOrder: number | null;
   }[];
   goals: {
@@ -117,11 +117,15 @@ export function buildAthleteStats({
     })),
   );
 
+  // Kata level = latest card's (derived) overall impression; no card → null.
+  const profByKata = new Map(
+    latestCards.map((c) => [c.kataId, c.overallImpression]),
+  );
   const compRepertoire = repertoire
     .filter((k) => k.isCompetitionKata)
     .map((k) => ({
       kataName: k.kataName,
-      proficiency: k.proficiency,
+      proficiency: profByKata.get(k.kataId) ?? null,
       roundOrder: k.roundOrder,
     }));
 

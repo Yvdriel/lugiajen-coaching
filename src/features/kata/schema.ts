@@ -12,10 +12,7 @@ export const athleteKataSchema = z.object({
     (v) => v === "on" || v === true || v === "true",
     z.boolean(),
   ),
-  proficiency: z.preprocess(
-    emptyToUndef,
-    z.coerce.number().int().min(0, "Minimaal 0.").max(100, "Maximaal 100.").default(1),
-  ),
+  // proficiency (kata level) is derived from the latest scoring card — not entered here.
   notes: z.preprocess(emptyToUndef, z.string().optional()),
 });
 

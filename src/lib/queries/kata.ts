@@ -14,8 +14,9 @@ export type AthleteKataItem = {
   flexibilityCategory: "A" | "B" | "C";
   roundOrder: number | null;
   isCompetitionKata: boolean;
-  proficiency: number;
   notes: string | null;
+  // Kata level (proficiency) is NOT stored here — it is derived from the latest scoring
+  // card's overall impression by the caller (see profByKata in the profile/portal pages).
 };
 
 /** Whole kata library, in seed order. */
@@ -34,7 +35,6 @@ export function getAthleteKata(athleteId: string): Promise<AthleteKataItem[]> {
       flexibilityCategory: kata.flexibilityCategory,
       roundOrder: athleteKata.roundOrder,
       isCompetitionKata: athleteKata.isCompetitionKata,
-      proficiency: athleteKata.proficiency,
       notes: athleteKata.notes,
     })
     .from(athleteKata)

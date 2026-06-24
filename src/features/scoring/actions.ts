@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { kataScoringCards } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { NUMERIC_CRITERIA, TEXT_FIELDS } from "./criteria";
+import { INPUT_CRITERIA, TEXT_FIELDS } from "./criteria";
 import { scoringCardSchema } from "./schema";
 
 export type ScoringFormState = {
@@ -46,7 +46,7 @@ export async function saveScoringCard(
   const raw: Record<string, unknown> = {
     assessmentDate: formData.get("assessmentDate"),
   };
-  for (const c of NUMERIC_CRITERIA) raw[c.key] = formData.get(c.key);
+  for (const c of INPUT_CRITERIA) raw[c.key] = formData.get(c.key);
   for (const k of TEXT_FIELDS) raw[k] = formData.get(k);
 
   const parsed = scoringCardSchema.safeParse(raw);

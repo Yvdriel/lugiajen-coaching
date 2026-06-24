@@ -1,12 +1,20 @@
 import { and, asc, desc, eq, getTableColumns, sql } from "drizzle-orm";
 import { kataScoringCards } from "@/db/schema";
+import { computeOverall } from "@/features/scoring/criteria";
 import { db } from "@/lib/db";
 
 // Canonical scoring-card reads (conventions 4 + 5). Append-only history: latest /
 // previous / trend all derive from one ordering — assessment_date DESC, created_at DESC.
 // Ch6 (charts) reuses these; do not re-query the table elsewhere.
 
-export type ScoringCardRow = typeof kataScoringCards.$inferSelect;
+// `overall_impression` is not stored — it is the mean of the 12 criteria, computed here
+// at the read boundary and attached to every row so downstream display/PDF code is unchanged.
+type ScoringCardDbRow = typeof kataScoringCards.$inferSelect;
+export type ScoringCardRow = ScoringCardDbRow & { overallImpression: number };
+
+function withOverall(row: ScoringCardDbRow): ScoringCardRow {
+  return { ...row, overallImpression: computeOverall(row) };
+}
 
 /** All assessments for one athlete+kata, newest-first. */
 export function getScoringHistory(
@@ -22,7 +30,8 @@ export function getScoringHistory(
         eq(kataScoringCards.kataId, kataId),
       ),
     )
-    .orderBy(desc(kataScoringCards.assessmentDate), desc(kataScoringCards.createdAt));
+    .orderBy(desc(kataScoringCards.assessmentDate), desc(kataScoringCards.createdAt))
+    .then((rows) => rows.map(withOverall));
 }
 
 /** The current latest card for one athlete+kata — the "previous" reference a new save deltas against. */
@@ -41,7 +50,7 @@ export async function getLatestScoringCard(
     )
     .orderBy(desc(kataScoringCards.assessmentDate), desc(kataScoringCards.createdAt))
     .limit(1);
-  return row ?? null;
+  return row ? withOverall(row) : null;
 }
 
 /** Latest card per kata across an athlete's whole repertoire (ROW_NUMBER window). */
@@ -64,7 +73,7 @@ export async function getLatestCardsPerKata(
   return rows.map((row) => {
     const rest = { ...row } as Record<string, unknown>;
     delete rest.rn; // drop the window helper column
-    return rest as ScoringCardRow;
+    return withOverall(rest as ScoringCardDbRow);
   });
 }
 
@@ -73,10 +82,7 @@ export async function getScoringSeriesByKata(
   athleteId: string,
 ): Promise<Map<string, number[]>> {
   const rows = await db
-    .select({
-      kataId: kataScoringCards.kataId,
-      overall: kataScoringCards.overallImpression,
-    })
+    .select()
     .from(kataScoringCards)
     .where(eq(kataScoringCards.athleteId, athleteId))
     .orderBy(
@@ -87,7 +93,7 @@ export async function getScoringSeriesByKata(
   const map = new Map<string, number[]>();
   for (const r of rows) {
     const arr = map.get(r.kataId) ?? [];
-    arr.push(r.overall);
+    arr.push(computeOverall(r)); // derived overall, oldest→newest
     map.set(r.kataId, arr);
   }
   return map;

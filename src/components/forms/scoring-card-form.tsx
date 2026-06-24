@@ -15,6 +15,7 @@ import {
   CRITERION_GROUPS,
   criteriaForGroup,
   formatDelta,
+  INPUT_CRITERIA,
   type NumericCriterionKey,
   TEXT_FIELDS,
 } from "@/features/scoring/criteria";
@@ -43,11 +44,10 @@ export function ScoringCardForm({
   );
 
   // Numeric inputs prefill with the previous value (delta starts at →); text fields stay blank.
+  // Overall impression is derived, not entered, so only the 12 input criteria get fields.
   const defaults: Values = { assessmentDate: today };
-  for (const group of CRITERION_GROUPS) {
-    for (const c of criteriaForGroup(group)) {
-      defaults[c.key] = previousCard ? String(previousCard[c.key]) : "";
-    }
+  for (const c of INPUT_CRITERIA) {
+    defaults[c.key] = previousCard ? String(previousCard[c.key]) : "";
   }
   for (const k of TEXT_FIELDS) defaults[k] = "";
 
@@ -68,6 +68,18 @@ export function ScoringCardForm({
   const values = useWatch({ control }) as Values;
   const s = nl.scoring;
 
+  // Live derived overall impression: mean of the 12 inputs once all are filled (else —).
+  const allFilled = INPUT_CRITERIA.every((c) => {
+    const v = values[c.key];
+    return v != null && v !== "" && Number.isFinite(Number(v));
+  });
+  const overallPreview = allFilled
+    ? Math.round(
+        INPUT_CRITERIA.reduce((acc, c) => acc + Number(values[c.key]), 0) /
+          INPUT_CRITERIA.length,
+      )
+    : null;
+
   return (
     <form action={formAction} className="flex flex-col gap-6" noValidate>
       <input type="hidden" name="athleteId" value={athleteId} />
@@ -87,7 +99,7 @@ export function ScoringCardForm({
         ) : null}
       </div>
 
-      {CRITERION_GROUPS.map((group) => (
+      {CRITERION_GROUPS.filter((group) => group !== "overall").map((group) => (
         <fieldset key={group} className="flex flex-col gap-3">
           <legend className="text-sm font-semibold">{s.groups[group]}</legend>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -131,6 +143,13 @@ export function ScoringCardForm({
           </div>
         </fieldset>
       ))}
+
+      <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2">
+        <Label>{s.criteria.overallImpression}</Label>
+        <span className="text-sm font-semibold tabular-nums">
+          {overallPreview == null ? "—" : `${overallPreview}/100`}
+        </span>
+      </div>
 
       <div className="flex flex-col gap-4">
         {TEXT_FIELDS.map((k) => (
