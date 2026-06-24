@@ -1,5 +1,11 @@
-import { and, asc, desc, eq, ne } from "drizzle-orm";
-import { feedbackForms, feedbackKataRatings, kata } from "@/db/schema";
+import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
+import {
+  clips,
+  feedbackClips,
+  feedbackForms,
+  feedbackKataRatings,
+  kata,
+} from "@/db/schema";
 import { db } from "@/lib/db";
 
 // Shared feedback reads (convention 4).
@@ -11,6 +17,42 @@ export type FeedbackKataRatingRow = {
   score: number | null;
   notes: string | null;
 };
+
+type ClipRow = typeof clips.$inferSelect;
+
+/** One clip as curated onto a feedback gesprek's reel (join row). */
+export type ReelClipRow = {
+  feedbackClipId: string;
+  feedbackId: string;
+  clipId: string;
+  caption: string | null;
+  addedBy: (typeof feedbackClips.$inferSelect)["addedBy"];
+  sortOrder: number;
+  assetId: string;
+  status: ClipRow["status"];
+  kind: ClipRow["kind"];
+  label: string | null;
+  thumbnailUrl: string | null;
+  durationMs: number | null;
+  kataName: string | null;
+};
+
+// One canonical projection for the reel join, shared by both reel reads.
+const reelClipColumns = {
+  feedbackClipId: feedbackClips.id,
+  feedbackId: feedbackClips.feedbackId,
+  clipId: feedbackClips.clipId,
+  caption: feedbackClips.caption,
+  addedBy: feedbackClips.addedBy,
+  sortOrder: feedbackClips.sortOrder,
+  assetId: clips.assetId,
+  status: clips.status,
+  kind: clips.kind,
+  label: clips.label,
+  thumbnailUrl: clips.thumbnailUrl,
+  durationMs: clips.durationMs,
+  kataName: kata.name,
+} as const;
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -133,6 +175,44 @@ export async function getFeedbackKataRatingsByAthlete(
       score: r.score,
       notes: r.notes,
     });
+    map.set(r.feedbackId, list);
+  }
+  return map;
+}
+
+/** The ordered clip reel for one feedback gesprek (join clips + kata name). */
+export function getFeedbackClips(feedbackId: string): Promise<ReelClipRow[]> {
+  if (!UUID_RE.test(feedbackId)) return Promise.resolve([]);
+  return db
+    .select(reelClipColumns)
+    .from(feedbackClips)
+    .innerJoin(clips, eq(feedbackClips.clipId, clips.id))
+    .leftJoin(kata, eq(clips.kataId, kata.id))
+    .where(eq(feedbackClips.feedbackId, feedbackId))
+    .orderBy(asc(feedbackClips.sortOrder));
+}
+
+/**
+ * Reels for many feedback forms at once, grouped by feedback id (one query) — the
+ * portal renders several completed gesprekken together. Empty input → empty map.
+ */
+export async function getFeedbackClipsByFeedbackIds(
+  feedbackIds: string[],
+): Promise<Map<string, ReelClipRow[]>> {
+  const valid = feedbackIds.filter((id) => UUID_RE.test(id));
+  if (valid.length === 0) return new Map();
+  const rows = await db
+    .select(reelClipColumns)
+    .from(feedbackClips)
+    .innerJoin(clips, eq(feedbackClips.clipId, clips.id))
+    .leftJoin(kata, eq(clips.kataId, kata.id))
+    .where(inArray(feedbackClips.feedbackId, valid))
+    .orderBy(asc(feedbackClips.sortOrder));
+
+  const map = new Map<string, ReelClipRow[]>();
+  for (const r of rows) {
+    const list = map.get(r.feedbackId) ?? [];
+    list.push(r);
     map.set(r.feedbackId, list);
   }
   return map;
