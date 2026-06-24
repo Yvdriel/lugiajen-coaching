@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AthleteAnswers } from "@/components/display/athlete-answers";
+import { CompetitionMeetingPanel } from "@/components/display/competition-meeting-panel";
 import { FeedbackDetail } from "@/components/display/feedback-detail";
 import { FeedbackReelSection } from "@/components/clips/feedback-reel-section";
 import { FeedbackFormCadet } from "@/components/forms/feedback-form-cadet";
@@ -16,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { resolveRecipient } from "@/features/athletes/consent";
 import { completeFeedback, updateFeedback } from "@/features/feedback/actions";
+import { loadMeetingCompetitions } from "@/features/feedback/competitions";
+import { showsCompetitionSection } from "@/features/feedback/form-type";
 import { isReelEditable } from "@/features/feedback/reel-order";
 import { loadReview } from "@/features/feedback/review";
 import {
@@ -65,6 +68,18 @@ export default async function FeedbackDetailPage({
   const isDraft = form.status === "awaiting_athlete";
   const isSubmitted = form.status === "athlete_submitted";
   const editing = edit === "1" && !isDraft;
+  // Competition section (CADET+): the window of competitions since the previous
+  // meeting, coach feedback paired with the athlete's reflection. Skipped for U12 and
+  // for the bare draft (no meeting yet).
+  const showCompetitions = showsCompetitionSection(form.formType) && !isDraft;
+  const meetingCompetitions = showCompetitions
+    ? await loadMeetingCompetitions({
+        id: form.id,
+        athleteId: a.id,
+        meetingDate: form.meetingDate,
+        createdAt: form.createdAt,
+      })
+    : [];
   // The reel may be curated only before the meeting; during (editing) + after
   // (completed) it is play-only.
   const reelEditable = isReelEditable(form.status, editing);
@@ -217,6 +232,15 @@ export default async function FeedbackDetailPage({
           actions={actions}
         />
       )}
+
+      {showCompetitions ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="font-heading text-lg font-semibold">
+            {f.competitionSection.heading}
+          </h2>
+          <CompetitionMeetingPanel competitions={meetingCompetitions} />
+        </section>
+      ) : null}
 
       {/* Clip reel — curate before the meeting; play-only during/after it. */}
       <FeedbackReelSection

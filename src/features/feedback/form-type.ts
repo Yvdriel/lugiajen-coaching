@@ -23,6 +23,15 @@ export function isFormType(v: unknown): v is FormType {
 }
 
 /**
+ * Whether the meeting shows the competition section (reflection + coach pairing).
+ * Hidden for U12 (kids' meeting is about fun, not competition review); shown for
+ * CADET / JUNIOR / SENIOR. Gate on the meeting's own tier, not a separate lookup.
+ */
+export function showsCompetitionSection(formType: FormType): boolean {
+  return formType !== "U12";
+}
+
+/**
  * Max meetings per season. U12/CADET meet ~3x/season; JUNIOR/SENIOR train and
  * check in far more often (SENIOR monthly+), so allow a higher meeting number.
  */

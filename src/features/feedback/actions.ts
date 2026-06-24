@@ -6,12 +6,17 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { feedbackForms, feedbackKataRatings } from "@/db/schema";
+import {
+  competitionAthleteReflection,
+  feedbackForms,
+  feedbackKataRatings,
+} from "@/db/schema";
 import { resolveRecipient } from "@/features/athletes/consent";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendCoachSubmittedNotice, sendPrepareInvite } from "@/lib/email/send";
 import { getAthleteById } from "@/lib/queries/athletes";
+import { getMeetingCompetitionWindow } from "@/lib/queries/competition-reflections";
 import {
   getFeedbackById,
   getOpenGoalsForReview,
@@ -29,15 +34,23 @@ import {
   validateAthleteReview,
   validateCoachReview,
 } from "./children";
-import { currentSeason, type FormType, isFormType, maxMeetingNumber } from "./form-type";
+import {
+  currentSeason,
+  type FormType,
+  isFormType,
+  maxMeetingNumber,
+  showsCompetitionSection,
+} from "./form-type";
 import {
   type AthletePrepParsed,
   athletePrepSchema,
+  type CompetitionReflectionInput,
   FEEDBACK_ATHLETE_FIELDS,
   FEEDBACK_CONTENT_FIELDS,
   type FeedbackParsed,
   feedbackSchema,
   type KataRatingInput,
+  parseCompetitionReflections,
   parseKataRatings,
 } from "./schema";
 
@@ -202,6 +215,34 @@ async function insertKataRatings(
   await db
     .insert(feedbackKataRatings)
     .values(ratings.map((r) => ({ ...r, feedbackId })));
+}
+
+// Upsert one reflection per windowed competition (unique on competitionId+athleteId),
+// stamping the meeting whose prep captured it. Re-submitting overwrites in place.
+async function upsertCompetitionReflections(
+  meetingId: string,
+  athleteId: string,
+  rows: CompetitionReflectionInput[],
+) {
+  if (rows.length === 0) return;
+  const stmts = rows.map(({ competitionId, ...fields }) =>
+    db
+      .insert(competitionAthleteReflection)
+      .values({
+        competitionId,
+        athleteId,
+        reflectedAtMeetingId: meetingId,
+        ...fields,
+      })
+      .onConflictDoUpdate({
+        target: [
+          competitionAthleteReflection.competitionId,
+          competitionAthleteReflection.athleteId,
+        ],
+        set: { reflectedAtMeetingId: meetingId, ...fields, updatedAt: new Date() },
+      }),
+  );
+  await runBatch(stmts as Stmt[]);
 }
 
 export async function createFeedback(
@@ -384,6 +425,22 @@ export async function submitAthletePreparation(
     .delete(feedbackKataRatings)
     .where(eq(feedbackKataRatings.feedbackId, form.id));
   await insertKataRatings(form.id, ratings);
+
+  // Competition reflections (CADET+). Re-derive the window server-side so a smuggled
+  // competition id is never honoured, then upsert one row per windowed competition.
+  if (showsCompetitionSection(form.formType)) {
+    const window = await getMeetingCompetitionWindow({
+      id: form.id,
+      athleteId: form.athleteId,
+      meetingDate: form.meetingDate,
+      createdAt: form.createdAt,
+    });
+    const reflections = parseCompetitionReflections(
+      formData,
+      window.map((c) => c.competitionId),
+    );
+    await upsertCompetitionReflections(form.id, form.athleteId, reflections);
+  }
 
   // Athlete self-claim onto the PREVIOUS meeting's open rows (athlete* columns only,
   // scoped to open state). After the guarded submit succeeded.

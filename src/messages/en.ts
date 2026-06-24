@@ -390,6 +390,21 @@ export const en: Messages = {
         "Training planning — where are we and what's coming up?",
       physicalPlan: "Physical agreements (S&C, mobility, recovery, prevention)",
     },
+    competitionSection: {
+      heading: "Competitions since last meeting",
+      prepareIntro:
+        "Look back on your competition(s) since the last meeting. Fill in your own reflection — your coach shares their feedback during the meeting.",
+      empty: "No competitions since the last meeting.",
+      rating: "How did it go, gut feeling? (1-5)",
+      before: "How did I feel beforehand and how had I prepared?",
+      performance: "What went well?",
+      improvement: "What do I want to improve?",
+      lesson: "What is my key takeaway?",
+      notes: "How did it go overall?",
+      athleteColumn: "Athlete",
+      coachColumn: "Coach",
+      noReflection: "Athlete hasn't filled in a reflection yet.",
+    },
   },
   competition: {
     title: "Competitions",

@@ -399,6 +399,23 @@ export const nl = {
         "Trainingsplanning — waar zitten we en wat komt eraan?",
       physicalPlan: "Afspraken fysiek (S&C, mobiliteit, herstel, preventie)",
     },
+    // Competition section in the meeting (CADET+). Athlete reflection during prep,
+    // paired against the coach's per-entry feedback at the meeting.
+    competitionSection: {
+      heading: "Wedstrijden sinds vorige gesprek",
+      prepareIntro:
+        "Blik terug op je wedstrijd(en) sinds het vorige gesprek. Vul je eigen reflectie in — je coach deelt zijn feedback tijdens jullie gesprek.",
+      empty: "Geen wedstrijden sinds het vorige gesprek.",
+      rating: "Hoe ging het, gevoelsmatig? (1-5)",
+      before: "Hoe voelde ik me vooraf en hoe had ik me voorbereid?",
+      performance: "Wat ging er goed?",
+      improvement: "Wat wil ik verbeteren?",
+      lesson: "Wat is mijn belangrijkste les?",
+      notes: "Hoe ging het in het algemeen?",
+      athleteColumn: "Atleet",
+      coachColumn: "Coach",
+      noReflection: "Atleet heeft nog geen reflectie ingevuld.",
+    },
   },
   competition: {
     title: "Wedstrijden",

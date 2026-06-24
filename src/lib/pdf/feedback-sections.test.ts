@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { MeetingCompetition } from "@/lib/queries/competition-reflections";
 import type {
   FeedbackActionRow,
   FeedbackGoalRow,
@@ -171,5 +172,106 @@ describe("feedbackSections", () => {
 
   it("returns no sections for a blank form", () => {
     expect(feedbackSections(form({}), nl)).toEqual([]);
+  });
+});
+
+// ── Competition section (CADET+) ───────────────────────────────────────────────
+function entry(overrides: Record<string, unknown>) {
+  return {
+    id: "e",
+    category: "Cadet -57kg",
+    feedbackBefore: null,
+    feedbackPerformance: null,
+    feedbackImprovement: null,
+    feedbackLesson: null,
+    ...overrides,
+  } as unknown as MeetingCompetition["entries"][number];
+}
+
+function meetingComp(
+  overrides: Partial<MeetingCompetition> = {},
+): MeetingCompetition {
+  return {
+    competitionId: "c1",
+    competitionName: "Hayashi Cup",
+    competitionDate: "2026-03-01",
+    competitionType: "international",
+    categories: ["Cadet -57kg"],
+    entries: [entry({})],
+    reflection: null,
+    ...overrides,
+  };
+}
+
+const cs = nl.feedback.competitionSection;
+const ce = nl.competition.entry;
+
+describe("feedbackSections — competition section", () => {
+  it("pairs the athlete reflection with the coach feedback per dimension", () => {
+    const sections = feedbackSections(
+      form({ formType: "CADET" }),
+      nl,
+      [],
+      [],
+      [],
+      [
+        meetingComp({
+          entries: [entry({ feedbackPerformance: "Strakke kime" })],
+          reflection: {
+            overallRating: 3,
+            reflectionPerformance: "Ging soepel",
+          } as unknown as MeetingCompetition["reflection"],
+        }),
+      ],
+    );
+    const sec = sections.find(
+      (s) => s.title === `${cs.heading} — Hayashi Cup`,
+    )!;
+    expect(sec).toBeTruthy();
+    // rating rendered as n/5
+    expect(sec.fields.find((f) => f.label === cs.rating)?.value).toBe("3/5");
+    // the performance dimension carries both reads
+    const perf = sec.fields.find((f) => f.label === ce.feedbackPerformance)!;
+    expect(perf.value).toContain(`${cs.athleteColumn}: Ging soepel`);
+    expect(perf.value).toContain(`${cs.coachColumn}: Strakke kime`);
+  });
+
+  it("tags each coach line with its category when there are two entries", () => {
+    const sections = feedbackSections(
+      form({ formType: "JUNIOR" }),
+      nl,
+      [],
+      [],
+      [],
+      [
+        meetingComp({
+          categories: ["Junior", "U21"],
+          entries: [
+            entry({ category: "Junior", feedbackLesson: "Rust bewaren" }),
+            entry({ category: "U21", feedbackLesson: "Tempo hoog houden" }),
+          ],
+          reflection: null,
+        }),
+      ],
+    );
+    const sec = sections.find(
+      (s) => s.title === `${cs.heading} — Hayashi Cup`,
+    )!;
+    const lesson = sec.fields.find((f) => f.label === ce.feedbackLesson)!;
+    expect(lesson.value).toContain(`${cs.coachColumn} (Junior): Rust bewaren`);
+    expect(lesson.value).toContain(`${cs.coachColumn} (U21): Tempo hoog houden`);
+    // no reflection → no athlete line, no rating field
+    expect(lesson.value).not.toContain(cs.athleteColumn);
+    expect(sec.fields.some((f) => f.label === cs.rating)).toBe(false);
+  });
+
+  it("omits the competition section entirely when none are passed", () => {
+    const sections = feedbackSections(
+      form({ formType: "CADET", coachStrength: "x" }),
+      nl,
+    );
+    expect(
+      sections.some((s) => s.title.startsWith(cs.heading)),
+    ).toBe(false);
   });
 });

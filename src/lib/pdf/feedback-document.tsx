@@ -1,6 +1,7 @@
 import { Document, Page, View } from "@react-pdf/renderer";
 import { formatDate } from "@/i18n/format";
 import type { Locale, Messages } from "@/messages";
+import type { MeetingCompetition } from "@/lib/queries/competition-reflections";
 import type {
   FeedbackActionRow,
   FeedbackGoalRow,
@@ -21,6 +22,7 @@ export function FeedbackDocument({
   kataRatings = [],
   goals = [],
   actions = [],
+  competitions = [],
   m,
   locale,
 }: {
@@ -29,10 +31,18 @@ export function FeedbackDocument({
   kataRatings?: FeedbackKataRatingRow[];
   goals?: FeedbackGoalRow[];
   actions?: FeedbackActionRow[];
+  competitions?: MeetingCompetition[];
   m: Messages;
   locale: Locale;
 }) {
-  const sections = feedbackSections(form, m, kataRatings, goals, actions);
+  const sections = feedbackSections(
+    form,
+    m,
+    kataRatings,
+    goals,
+    actions,
+    competitions,
+  );
   const name = `${athlete.firstName} ${athlete.lastName}`;
   const subtitle = `${name} · ${m.feedback.meeting} ${form.meetingNumber} · ${formatDate(form.meetingDate, locale)} · ${form.season} · ${form.formType}`;
 

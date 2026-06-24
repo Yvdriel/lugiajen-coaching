@@ -337,6 +337,7 @@ export default async function PortalPage({
             rows={competitions}
             kataNames={kataNames}
             mode="public"
+            latestCompletedMeetingDate={feedback[0]?.meetingDate ?? null}
           />
         </TabsContent>
       </Tabs>

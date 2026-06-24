@@ -77,27 +77,38 @@ export async function RoundList({
 export async function EntryFeedback({
   entry,
   mode = "coach",
+  revealCoachFeedback = true,
 }: {
   entry: CompetitionEntry;
   mode?: "coach" | "public";
+  // Public surfaces only reveal the coach's per-entry feedback once a completed
+  // meeting has covered the competition (the reveal happens at the parent meeting).
+  // Always revealed for the coach.
+  revealCoachFeedback?: boolean;
 }) {
   const nl = await getMessages();
   const e = nl.competition.entry;
+  const showFeedback = mode === "coach" || revealCoachFeedback;
   // coachNotes is coach-private — never shown in the public portal (convention 3).
   const showCoachNotes = mode === "coach" && Boolean(entry.coachNotes);
   const hasAny =
-    entry.feedbackBefore ||
-    entry.feedbackPerformance ||
-    entry.feedbackImprovement ||
-    entry.feedbackLesson ||
+    (showFeedback &&
+      (entry.feedbackBefore ||
+        entry.feedbackPerformance ||
+        entry.feedbackImprovement ||
+        entry.feedbackLesson)) ||
     showCoachNotes;
   if (!hasAny) return null;
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      <Row label={e.feedbackBefore} value={entry.feedbackBefore} />
-      <Row label={e.feedbackPerformance} value={entry.feedbackPerformance} />
-      <Row label={e.feedbackImprovement} value={entry.feedbackImprovement} />
-      <Row label={e.feedbackLesson} value={entry.feedbackLesson} />
+      {showFeedback ? (
+        <>
+          <Row label={e.feedbackBefore} value={entry.feedbackBefore} />
+          <Row label={e.feedbackPerformance} value={entry.feedbackPerformance} />
+          <Row label={e.feedbackImprovement} value={entry.feedbackImprovement} />
+          <Row label={e.feedbackLesson} value={entry.feedbackLesson} />
+        </>
+      ) : null}
       {showCoachNotes ? (
         <Row label={e.coachNotes} value={entry.coachNotes} />
       ) : null}
@@ -111,17 +122,23 @@ export function EntryBody({
   kataNames,
   actions,
   mode = "coach",
+  revealCoachFeedback = true,
 }: {
   entry: CompetitionEntry;
   kataNames: Map<string, string>;
   actions?: ReactNode;
   mode?: "coach" | "public";
+  revealCoachFeedback?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-3">
       <ResultBadges entry={entry} />
       <RoundList entry={entry} kataNames={kataNames} />
-      <EntryFeedback entry={entry} mode={mode} />
+      <EntryFeedback
+        entry={entry}
+        mode={mode}
+        revealCoachFeedback={revealCoachFeedback}
+      />
       {actions ? <div className="flex gap-1">{actions}</div> : null}
     </div>
   );

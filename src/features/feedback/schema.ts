@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { CompetitionType } from "@/features/competitions/schema";
 import { maxMeetingNumber } from "./form-type";
 
 // Server-authoritative validation (convention 8). One schema covers all templates:
@@ -265,6 +266,87 @@ export function parseKataRatings(
     out.push({ kataId, score, notes });
   }
   return out;
+}
+
+// ── Competition reflection rows (athlete's read on a competition) ─────────────
+// CADET+ prepare forms post a 1-5 rating, four structured fields (mirroring the
+// coach's per-entry feedback), and free-text notes per windowed competition, named
+// `cr_<field>_<competitionId>`.
+export type CompetitionReflectionInput = {
+  competitionId: string;
+  overallRating: number | null;
+  reflectionBefore: string | null;
+  reflectionPerformance: string | null;
+  reflectionImprovement: string | null;
+  reflectionLesson: string | null;
+  reflectionNotes: string | null;
+};
+
+/**
+ * One competition as the athlete sees it during prep: meta + their own reflection
+ * values, and NOTHING from the coach's per-entry feedback. Client-safe (no db) so the
+ * prepare client form can import it; the mapper that builds it is the security boundary.
+ */
+export type CompetitionPrepItem = {
+  competitionId: string;
+  competitionName: string;
+  competitionDate: string;
+  competitionType: CompetitionType;
+  categories: string[];
+  reflection: {
+    overallRating: number | null;
+    before: string | null;
+    performance: string | null;
+    improvement: string | null;
+    lesson: string | null;
+    notes: string | null;
+  };
+};
+
+export const crRatingField = (id: string) => `cr_rating_${id}`;
+export const crBeforeField = (id: string) => `cr_before_${id}`;
+export const crPerformanceField = (id: string) => `cr_performance_${id}`;
+export const crImprovementField = (id: string) => `cr_improvement_${id}`;
+export const crLessonField = (id: string) => `cr_lesson_${id}`;
+export const crNotesField = (id: string) => `cr_notes_${id}`;
+
+const reflectionRating = z.coerce
+  .number()
+  .int()
+  .min(1, "Minimaal 1.")
+  .max(5, "Maximaal 5.");
+
+const textOrNull = (v: FormDataEntryValue | null): string | null =>
+  typeof v === "string" && v.trim() !== "" ? v.trim() : null;
+
+/**
+ * Parse competition reflection rows from FormData, restricted to the server-derived
+ * window ids (the public-submit boundary — a smuggled competition id is never in the
+ * id list, so it can't be written). One row per windowed competition, even when the
+ * athlete left it blank, so a presented competition doesn't reappear next meeting.
+ */
+export function parseCompetitionReflections(
+  formData: FormData,
+  competitionIds: readonly string[],
+): CompetitionReflectionInput[] {
+  return competitionIds.map((competitionId) => {
+    const parsedRating = reflectionRating.safeParse(
+      formData.get(crRatingField(competitionId)),
+    );
+    return {
+      competitionId,
+      overallRating: parsedRating.success ? parsedRating.data : null,
+      reflectionBefore: textOrNull(formData.get(crBeforeField(competitionId))),
+      reflectionPerformance: textOrNull(
+        formData.get(crPerformanceField(competitionId)),
+      ),
+      reflectionImprovement: textOrNull(
+        formData.get(crImprovementField(competitionId)),
+      ),
+      reflectionLesson: textOrNull(formData.get(crLessonField(competitionId))),
+      reflectionNotes: textOrNull(formData.get(crNotesField(competitionId))),
+    };
+  });
 }
 
 // ── Goals + action items wire format (client-safe; no db) ─────────────────────

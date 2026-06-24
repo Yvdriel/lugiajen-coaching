@@ -1,4 +1,9 @@
 import { createElement } from "react";
+import {
+  loadMeetingCompetitions,
+  type MeetingCompetition,
+} from "@/features/feedback/competitions";
+import { showsCompetitionSection } from "@/features/feedback/form-type";
 import { getLocale, getMessages } from "@/i18n/server";
 import { FeedbackDocument } from "@/lib/pdf/feedback-document";
 import { assertCoach, pdfResponse, renderPdf, safeName } from "@/lib/pdf/http";
@@ -36,6 +41,18 @@ export async function GET(
     return new Response("Not available", { status: 404 });
   }
 
+  // Competition section (CADET+): coach feedback paired with the athlete's reflection.
+  const competitions: MeetingCompetition[] = showsCompetitionSection(
+    form.formType,
+  )
+    ? await loadMeetingCompetitions({
+        id: form.id,
+        athleteId: form.athleteId,
+        meetingDate: form.meetingDate,
+        createdAt: form.createdAt,
+      })
+    : [];
+
   const [m, locale] = await Promise.all([getMessages(), getLocale()]);
   const buffer = await renderPdf(
     createElement(FeedbackDocument, {
@@ -44,6 +61,7 @@ export async function GET(
       kataRatings,
       goals,
       actions,
+      competitions,
       m,
       locale,
     }),

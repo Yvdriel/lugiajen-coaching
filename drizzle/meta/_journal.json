@@ -64,6 +64,13 @@
       "when": 1782293401581,
       "tag": "0008_talented_professor_monster",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1782296727092,
+      "tag": "0009_amused_tarot",
+      "breakpoints": true
     }
   ]
 }

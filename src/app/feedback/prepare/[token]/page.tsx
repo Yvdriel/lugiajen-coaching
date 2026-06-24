@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AthleteAnswers } from "@/components/display/athlete-answers";
+import { CompetitionReflectionFields } from "@/components/forms/competition-reflection-fields";
 import { AthletePrepForm } from "@/components/forms/athlete-prep-form";
 import {
   markPrepareOpened,
   submitAthletePreparation,
 } from "@/features/feedback/actions";
+import {
+  type CompetitionPrepItem,
+  loadMeetingCompetitions,
+  toPrepItems,
+} from "@/features/feedback/competitions";
+import { showsCompetitionSection } from "@/features/feedback/form-type";
 import { loadReview } from "@/features/feedback/review";
 import {
   feedbackToValues,
@@ -50,6 +57,20 @@ export default async function PreparePage({
   // First-open audit (set-once; safe to call regardless of status).
   await markPrepareOpened(token);
 
+  // Competition reflection items (CADET+ only). Coach feedback is stripped by
+  // `toPrepItems`, so nothing coach-private reaches this public surface.
+  const loadPrepItems = async (): Promise<CompetitionPrepItem[]> =>
+    showsCompetitionSection(form.formType)
+      ? toPrepItems(
+          await loadMeetingCompetitions({
+            id: form.id,
+            athleteId: form.athleteId,
+            meetingDate: form.meetingDate,
+            createdAt: form.createdAt,
+          }),
+        )
+      : [];
+
   const heading = (
     <div className="flex flex-col gap-1">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -73,7 +94,10 @@ export default async function PreparePage({
 
   // Already submitted — one-shot: show their answers read-only (no re-edit).
   if (form.status === "athlete_submitted") {
-    const kataRatings = await getFeedbackKataRatings(form.id);
+    const [kataRatings, competitions] = await Promise.all([
+      getFeedbackKataRatings(form.id),
+      loadPrepItems(),
+    ]);
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-6 p-6 md:p-8">
         {heading}
@@ -87,6 +111,14 @@ export default async function PreparePage({
           <h2 className="text-sm font-semibold">{nl.prepare.yourAnswers}</h2>
           <AthleteAnswers form={form} kataRatings={kataRatings} />
         </section>
+        {competitions.length > 0 ? (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-sm font-semibold">
+              {nl.feedback.competitionSection.heading}
+            </h2>
+            <CompetitionReflectionFields competitions={competitions} readOnly />
+          </section>
+        ) : null}
       </main>
     );
   }
@@ -97,11 +129,14 @@ export default async function PreparePage({
     kataId: k.kataId,
     kataName: k.kataName,
   }));
-  const review = await loadReview(form.athleteId, {
-    id: form.id,
-    meetingDate: form.meetingDate,
-    createdAt: form.createdAt,
-  });
+  const [review, competitions] = await Promise.all([
+    loadReview(form.athleteId, {
+      id: form.id,
+      meetingDate: form.meetingDate,
+      createdAt: form.createdAt,
+    }),
+    loadPrepItems(),
+  ]);
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-6 md:p-8">
@@ -111,6 +146,7 @@ export default async function PreparePage({
         formType={form.formType}
         repertoire={repertoire}
         review={review}
+        competitions={competitions}
         defaultValues={{
           ...feedbackToValues(form),
           ...kataRatingValues(repertoire),

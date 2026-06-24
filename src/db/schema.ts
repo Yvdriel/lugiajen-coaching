@@ -7,6 +7,7 @@ import {
   integer,
   pgEnum,
   pgTable,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -464,6 +465,47 @@ export const competitionEntries = pgTable(
   ],
 );
 
+// ── competition_athlete_reflection ────────────────────────────────────────────
+// One athlete reflection per (competition, athlete) — the athlete's own read on a
+// competition, filled during a meeting's prep (blind to the coach's per-entry
+// feedback). The four structured fields intentionally mirror the coach's entry
+// feedback so the meeting can lay them side by side. `reflectedAtMeetingId` is the
+// meeting whose prep captured it (set null if that meeting is later deleted); the
+// window resolver uses it to keep a reflected competition from reappearing next time.
+export const competitionAthleteReflection = pgTable(
+  "competition_athlete_reflection",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    competitionId: uuid("competition_id")
+      .notNull()
+      .references(() => competitions.id, { onDelete: "cascade" }),
+    athleteId: uuid("athlete_id")
+      .notNull()
+      .references(() => athletes.id, { onDelete: "cascade" }),
+    reflectedAtMeetingId: uuid("reflected_at_meeting_id").references(
+      () => feedbackForms.id,
+      { onDelete: "set null" },
+    ),
+    overallRating: smallint("overall_rating"), // 1-5 gut read; validated in app
+    reflectionBefore: text("reflection_before"),
+    reflectionPerformance: text("reflection_performance"),
+    reflectionImprovement: text("reflection_improvement"),
+    reflectionLesson: text("reflection_lesson"),
+    reflectionNotes: text("reflection_notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("competition_athlete_reflection_comp_athlete_idx").on(
+      t.competitionId,
+      t.athleteId,
+    ),
+  ],
+);
+
 // ── athlete_notes (append-only timestamped coach log; Notities tab) ────────────
 export const athleteNotes = pgTable("athlete_notes", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -672,6 +714,24 @@ export const competitionEntriesRelations = relations(
     athlete: one(athletes, {
       fields: [competitionEntries.athleteId],
       references: [athletes.id],
+    }),
+  }),
+);
+
+export const competitionAthleteReflectionRelations = relations(
+  competitionAthleteReflection,
+  ({ one }) => ({
+    competition: one(competitions, {
+      fields: [competitionAthleteReflection.competitionId],
+      references: [competitions.id],
+    }),
+    athlete: one(athletes, {
+      fields: [competitionAthleteReflection.athleteId],
+      references: [athletes.id],
+    }),
+    reflectedAtMeeting: one(feedbackForms, {
+      fields: [competitionAthleteReflection.reflectedAtMeetingId],
+      references: [feedbackForms.id],
     }),
   }),
 );

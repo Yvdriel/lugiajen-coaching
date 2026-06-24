@@ -5,7 +5,9 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import type { FeedbackFormState } from "@/features/feedback/actions";
 import type { FormType } from "@/features/feedback/form-type";
+import type { CompetitionPrepItem } from "@/features/feedback/schema";
 import { useMessages } from "@/i18n/client";
+import { CompetitionReflectionFields } from "./competition-reflection-fields";
 import {
   AthleteReviewPanel,
   type FBValues,
@@ -24,12 +26,14 @@ export function AthletePrepForm({
   formType,
   repertoire,
   review,
+  competitions = [],
   defaultValues,
   action,
 }: {
   formType: FormType;
   repertoire: KataRepertoireItem[];
   review: FeedbackReview;
+  competitions?: CompetitionPrepItem[];
   defaultValues: FBValues;
   action: (
     prev: FeedbackFormState,
@@ -66,6 +70,18 @@ export function AthletePrepForm({
           repertoire={repertoire}
         />
       </Section>
+
+      {competitions.length > 0 ? (
+        <Section title={nl.feedback.competitionSection.heading}>
+          <p className="-mt-1 text-sm text-muted-foreground">
+            {nl.feedback.competitionSection.prepareIntro}
+          </p>
+          <CompetitionReflectionFields
+            competitions={competitions}
+            register={register}
+          />
+        </Section>
+      ) : null}
 
       {state.message ? (
         <p className="text-sm text-destructive">{state.message}</p>
