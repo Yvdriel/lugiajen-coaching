@@ -167,14 +167,25 @@ export async function requestClipDownload(
 ): Promise<ClipDownloadState> {
   await requireSession();
   const [clip] = await db
-    .select({ assetId: clips.assetId, status: clips.status })
+    .select({ assetId: clips.assetId, status: clips.status, kind: clips.kind })
     .from(clips)
     .where(eq(clips.id, clipId));
   if (!clip) return { ok: false, message: "Onbekende clip." };
+  // Only the original (raw) clip is downloadable — analyses/comparisons come out
+  // of Kinovea, not back into it.
+  if (clip.kind !== "raw")
+    return {
+      ok: false,
+      message: "Alleen de originele video kan gedownload worden.",
+    };
   if (clip.assetId.startsWith(PENDING_PREFIX) || clip.status !== "ready")
     return { ok: false, message: "Video is nog niet klaar om te downloaden." };
   try {
     const info = await enableDownload(clip.assetId);
+    // Cloudflare reports a failed MP4 generation in-band — surface it as an
+    // error so the UI doesn't sit on "preparing…" forever.
+    if (info.status === "error")
+      return { ok: false, message: "Download voorbereiden mislukt." };
     return {
       ok: true,
       status: info.status,
