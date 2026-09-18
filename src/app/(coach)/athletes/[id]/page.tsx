@@ -11,8 +11,11 @@ import {
   KataRepertoire,
   type KataRepertoireItem,
 } from "@/components/display/kata-repertoire";
+import { LearningsList } from "@/components/display/learnings-list";
 import { ScoringHistoryPanel } from "@/components/display/scoring-history-panel";
 import { StatsOverview } from "@/components/display/stats-overview";
+import { TrainingPlan } from "@/components/display/training-plan";
+import { DeleteLearningButton } from "@/components/training/delete-learning-button";
 import { ClipsTab } from "@/components/clips/clips-tab";
 import { AssignKataForm } from "@/components/kata/assign-kata-form";
 import { AthleteKataEditForm } from "@/components/kata/athlete-kata-edit-form";
@@ -23,6 +26,9 @@ import {
   isPortalBlocked,
 } from "@/features/athletes/consent";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { withVli } from "@/features/training/context";
+import { weeklyVli } from "@/features/training/progress";
+import { addDays, todayIso, weekStartOf } from "@/features/training/vli";
 import { buildAthleteStats } from "@/lib/athlete-stats";
 import { calculateAge, getCategories } from "@/lib/categories";
 import { getAthleteById, getAthleteNotes } from "@/lib/queries/athletes";
@@ -42,6 +48,12 @@ import {
   getScoringHistory,
   getScoringSeriesByKata,
 } from "@/lib/queries/scoring";
+import {
+  getActivePlan,
+  getTimingLookup,
+  listLearnings,
+  listSessions,
+} from "@/lib/queries/training";
 import { getLocale, getMessages } from "@/i18n/server";
 import { formatDate, formatDateTime } from "@/i18n/format";
 
@@ -53,6 +65,7 @@ const TABS = [
   "competitions",
   "notes",
   "clips",
+  "training",
 ] as const;
 type Tab = (typeof TABS)[number];
 
@@ -86,6 +99,9 @@ export default async function AthletePage({
     competitions,
     kataLib,
     clips,
+    learnings,
+    plan,
+    timing,
   ] = await Promise.all([
     getAthleteNotes(id),
     getAthleteKata(id),
@@ -96,7 +112,24 @@ export default async function AthletePage({
     getAthleteCompetitions(id),
     getKataLibrary(),
     getAthleteClips(id),
+    listLearnings({ athleteId: id, includeGlobal: true, limit: 200 }),
+    getActivePlan(id, todayIso()),
+    getTimingLookup(id),
   ]);
+  // Training tab: the active plan's whole range, or the last 4 weeks without one.
+  const today = todayIso();
+  const trainingFrom = plan?.startDate ?? addDays(weekStartOf(today), -21);
+  const trainingTo = plan?.endDate ?? addDays(weekStartOf(today), 6);
+  const trainingSessions = (
+    await listSessions(id, trainingFrom, trainingTo)
+  ).map((s) => withVli(s, timing, today));
+  const trainingWeeks = weeklyVli({
+    sessions: trainingSessions,
+    planWeeks: plan?.weeks ?? [],
+    today,
+    from: trainingFrom,
+    to: trainingTo,
+  });
   const kataNames = new Map(kataLib.map((k) => [k.id, k.name]));
   // Latest meeting's action items (rows now) feed the focus-points panel.
   const latestActions = (
@@ -213,6 +246,7 @@ export default async function AthletePage({
           <TabsTrigger value="scoring">{t.scoringCards}</TabsTrigger>
           <TabsTrigger value="feedback">{t.feedback}</TabsTrigger>
           <TabsTrigger value="competitions">{t.competitions}</TabsTrigger>
+          <TabsTrigger value="training">{t.training}</TabsTrigger>
           <TabsTrigger value="notes">{t.notes}</TabsTrigger>
           <TabsTrigger value="clips">{t.clips}</TabsTrigger>
         </TabsList>
@@ -366,8 +400,31 @@ export default async function AthletePage({
           />
         </TabsContent>
 
+        <TabsContent value="training" className="pt-4">
+          <TrainingPlan
+            plan={plan}
+            weeks={trainingWeeks}
+            sessions={trainingSessions}
+            mode="coach"
+          />
+        </TabsContent>
+
         <TabsContent value="notes" className="pt-4">
           <div className="flex flex-col gap-4">
+            <section className="flex flex-col gap-2">
+              <h2 className="font-heading text-base font-semibold">
+                {nl.athlete.learnings.title}
+              </h2>
+              <LearningsList
+                items={learnings}
+                actions={(l) => (
+                  <DeleteLearningButton athleteId={a.id} id={l.id} />
+                )}
+              />
+            </section>
+            <h2 className="font-heading text-base font-semibold">
+              {nl.athlete.notes.title}
+            </h2>
             <AddNoteForm athleteId={a.id} />
             {notes.length === 0 ? (
               <p className="text-sm text-muted-foreground">
