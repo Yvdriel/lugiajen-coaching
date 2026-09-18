@@ -156,7 +156,10 @@ export function allowedSplits(
 /** Null when the block's split is allowed for the kata, else a message naming it. */
 export function validateBlockSplit(
   b: { split?: Split | null },
-  k: Pick<KataLibraryItem, "name" | "splitQuarter" | "splitThird" | "splitHalf">,
+  k: Pick<
+    KataLibraryItem,
+    "name" | "splitQuarter" | "splitThird" | "splitHalf"
+  >,
 ): string | null {
   if (b.split == null || allowedSplits(k).includes(b.split)) return null;
   return `${k.name} cannot be split into ${b.split} (allowed: ${allowedSplits(k).join(", ")}).`;

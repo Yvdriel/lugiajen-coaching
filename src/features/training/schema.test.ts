@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { KataLibraryItem } from "@/lib/queries/kata";
-import { blockInputSchema, planInputSchema, validateBlockSplit } from "./schema";
+import {
+  blockInputSchema,
+  planInputSchema,
+  validateBlockSplit,
+} from "./schema";
 
 const UUID = "00000000-0000-0000-0000-000000000000";
 
@@ -18,7 +22,9 @@ const kata = (o: Partial<KataLibraryItem> = {}): KataLibraryItem => ({
 
 describe("blockInputSchema", () => {
   it("requires split, sections and reps when kataId is set", () => {
-    expect(blockInputSchema.safeParse({ part: 5, kataId: UUID }).success).toBe(false);
+    expect(blockInputSchema.safeParse({ part: 5, kataId: UUID }).success).toBe(
+      false,
+    );
     expect(
       blockInputSchema.safeParse({
         part: 5,
@@ -33,7 +39,8 @@ describe("blockInputSchema", () => {
   it("requires a label when kataId is absent", () => {
     expect(blockInputSchema.safeParse({ part: 2 }).success).toBe(false);
     expect(
-      blockInputSchema.safeParse({ part: 2, label: "S&C", minutes: 30 }).success,
+      blockInputSchema.safeParse({ part: 2, label: "S&C", minutes: 30 })
+        .success,
     ).toBe(true);
   });
 

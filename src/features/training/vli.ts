@@ -44,7 +44,11 @@ export type TimingLookup = (
 
 export type MissingTiming = { kataId: string; split: Split; index: number };
 
-type KataBlock = VliBlock & { kataId: string; split: Split; sections: number[] };
+type KataBlock = VliBlock & {
+  kataId: string;
+  split: Split;
+  sections: number[];
+};
 
 export function effectiveReps(b: VliBlock): number {
   return b.actualReps ?? b.reps ?? 0;

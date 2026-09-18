@@ -52,7 +52,9 @@ describe("volume and load", () => {
 
   it("non-kata block is ignored", () => {
     expect(
-      blockVolume(kb({ kataId: null, split: null, sections: null, minutes: 20 })),
+      blockVolume(
+        kb({ kataId: null, split: null, sections: null, minutes: 20 }),
+      ),
     ).toBe(0);
   });
 });
@@ -150,11 +152,20 @@ describe("duration", () => {
 
 describe("done and weeks", () => {
   it("done when date passed and not skipped", () => {
-    expect(isSessionDone({ date: "2026-09-17", skippedAt: null }, "2026-09-18")).toBe(true);
-    expect(isSessionDone({ date: "2026-09-18", skippedAt: null }, "2026-09-18")).toBe(true);
-    expect(isSessionDone({ date: "2026-09-19", skippedAt: null }, "2026-09-18")).toBe(false);
     expect(
-      isSessionDone({ date: "2026-09-17", skippedAt: new Date() }, "2026-09-18"),
+      isSessionDone({ date: "2026-09-17", skippedAt: null }, "2026-09-18"),
+    ).toBe(true);
+    expect(
+      isSessionDone({ date: "2026-09-18", skippedAt: null }, "2026-09-18"),
+    ).toBe(true);
+    expect(
+      isSessionDone({ date: "2026-09-19", skippedAt: null }, "2026-09-18"),
+    ).toBe(false);
+    expect(
+      isSessionDone(
+        { date: "2026-09-17", skippedAt: new Date() },
+        "2026-09-18",
+      ),
     ).toBe(false);
   });
 
