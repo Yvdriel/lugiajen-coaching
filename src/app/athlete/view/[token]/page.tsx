@@ -11,6 +11,7 @@ import {
 } from "@/components/display/kata-repertoire";
 import { ScoringHistoryPanel } from "@/components/display/scoring-history-panel";
 import { StatsOverview } from "@/components/display/stats-overview";
+import { TrainingPlan } from "@/components/display/training-plan";
 import {
   ReelPlayer,
   type ReelPlayerClip,
@@ -20,6 +21,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isPortalBlocked } from "@/features/athletes/consent";
 import { signedIframeUrl } from "@/features/clips/lib/playback";
 import { playableReelClips } from "@/features/feedback/reel-order";
+import { withVli } from "@/features/training/context";
+import { weeklyVli } from "@/features/training/progress";
+import { todayIso } from "@/features/training/vli";
 import { buildAthleteStats } from "@/lib/athlete-stats";
 import { calculateAge, getCategories } from "@/lib/categories";
 import { getAthleteByViewToken } from "@/lib/queries/athletes";
@@ -38,6 +42,11 @@ import {
   getScoringHistory,
   getScoringSeriesByKata,
 } from "@/lib/queries/scoring";
+import {
+  getActivePlan,
+  getTimingLookup,
+  listSessions,
+} from "@/lib/queries/training";
 import { formatDate } from "@/i18n/format";
 import { getLocale, getMessages } from "@/i18n/server";
 
@@ -50,6 +59,7 @@ const TABS = [
   "scoring",
   "feedback",
   "competitions",
+  "training",
 ] as const;
 type Tab = (typeof TABS)[number];
 
@@ -97,6 +107,8 @@ export default async function PortalPage({
     kataLib,
     feedbackKataRatings,
     pendingPrepare,
+    plan,
+    timing,
   ] = await Promise.all([
     getAthleteKata(a.id),
     getLatestCardsPerKata(a.id),
@@ -106,8 +118,28 @@ export default async function PortalPage({
     getKataLibrary(),
     getFeedbackKataRatingsByAthlete(a.id),
     getPendingPrepareForm(a.id),
+    getActivePlan(a.id, todayIso()),
+    getTimingLookup(a.id),
   ]);
   const kataNames = new Map(kataLib.map((k) => [k.id, k.name]));
+
+  // Training tab: the whole active plan (decision: athlete sees the full plan).
+  // coachNotes are stripped by TrainingPlan mode="public" (convention 3).
+  const today = todayIso();
+  const trainingSessions = plan
+    ? (await listSessions(a.id, plan.startDate, plan.endDate)).map((s) =>
+        withVli(s, timing, today),
+      )
+    : [];
+  const trainingWeeks = plan
+    ? weeklyVli({
+        sessions: trainingSessions,
+        planWeeks: plan.weeks,
+        today,
+        from: plan.startDate,
+        to: plan.endDate,
+      })
+    : [];
 
   // Parent-meeting reels for completed gesprekken. Tokens are minted server-side;
   // the page is already consent-gated (isPortalBlocked above), so reel playback
@@ -166,7 +198,7 @@ export default async function PortalPage({
   const selectedKataId =
     scoreKata && repertoireKataIds.includes(scoreKata)
       ? scoreKata
-      : repertoireKataIds[0] ?? null;
+      : (repertoireKataIds[0] ?? null);
   const history = selectedKataId
     ? await getScoringHistory(a.id, selectedKataId)
     : [];
@@ -200,6 +232,7 @@ export default async function PortalPage({
           <TabsTrigger value="scoring">{t.scoringCards}</TabsTrigger>
           <TabsTrigger value="feedback">{t.feedback}</TabsTrigger>
           <TabsTrigger value="competitions">{t.competitions}</TabsTrigger>
+          <TabsTrigger value="training">{t.training}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="pt-4">
@@ -286,7 +319,9 @@ export default async function PortalPage({
                   <div className="border-t border-border pt-4 mt-4">
                     <AthleteAnswers
                       form={pendingPrepare}
-                      kataRatings={feedbackKataRatings.get(pendingPrepare.id) ?? []}
+                      kataRatings={
+                        feedbackKataRatings.get(pendingPrepare.id) ?? []
+                      }
                     />
                   </div>
                 </details>
@@ -343,6 +378,15 @@ export default async function PortalPage({
             kataNames={kataNames}
             mode="public"
             latestCompletedMeetingDate={feedback[0]?.meetingDate ?? null}
+          />
+        </TabsContent>
+
+        <TabsContent value="training" className="pt-4">
+          <TrainingPlan
+            plan={plan}
+            weeks={trainingWeeks}
+            sessions={trainingSessions}
+            mode="public"
           />
         </TabsContent>
       </Tabs>
