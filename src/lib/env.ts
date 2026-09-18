@@ -24,6 +24,8 @@ const EnvSchema = z.object({
   EMAIL_FROM: z.string().min(1).optional(), // e.g. "Lu Gia Jen <noreply@…>"
   // Shared secret guarding the cron route (Authorization: Bearer …).
   CRON_SECRET: z.string().min(1).optional(),
+  // Static bearer for the Claude Code MCP route (/api/mcp). Unset = route 401s.
+  MCP_TOKEN: z.string().min(32).optional(),
   // Cloudflare Stream (video). Optional so the app/tests boot without them; the
   // Stream client (features/clips/lib/stream.ts) asserts the ones it needs at
   // call time. API token scope: Stream:Edit. SIGNING_KEY_PEM is base64-encoded
