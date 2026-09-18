@@ -78,6 +78,13 @@
       "when": 1782308656433,
       "tag": "0010_narrow_blazing_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789765446521,
+      "tag": "0011_square_gamma_corps",
+      "breakpoints": true
     }
   ]
 }
