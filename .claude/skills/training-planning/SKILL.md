@@ -5,7 +5,7 @@ description: Plan, log and review kata training for a Lu Gia Jen athlete through
 
 # Training planning
 
-Method and formulas: invoke `kata-methodology`. Data: the `lugiajen` MCP server (`.mcp.json`; needs `LUGIAJEN_MCP_TOKEN`, and `LUGIAJEN_MCP_URL` for production).
+Method and formulas: invoke `kata-methodology`. Data: the `lugiajen` MCP server (`.mcp.json`, localhost; needs `LUGIAJEN_MCP_TOKEN` in the shell. Production is the user-scoped `lugiajen-prod` server).
 
 ## 1. Always first
 

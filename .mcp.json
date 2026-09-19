@@ -2,7 +2,7 @@
   "mcpServers": {
     "lugiajen": {
       "type": "http",
-      "url": "${LUGIAJEN_MCP_URL:-http://localhost:3005/api/mcp}",
+      "url": "http://localhost:3005/api/mcp",
       "headers": {
         "Authorization": "Bearer ${LUGIAJEN_MCP_TOKEN}"
       }
