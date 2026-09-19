@@ -1,6 +1,7 @@
 import type { AuthInfo } from "@modelcontextprotocol/server";
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { registerTrainingTools } from "@/features/training/mcp";
+import { registerCoachingTools } from "@/features/training/mcp-coaching";
 import { env } from "@/lib/env";
 
 export const runtime = "nodejs";
@@ -12,9 +13,15 @@ export const maxDuration = 60;
  * server per request. Single coach, single static token; fails closed when
  * MCP_TOKEN is unset, same shape as the cron route.
  */
-const handler = createMcpHandler((server) => registerTrainingTools(server), {
-  serverInfo: { name: "lugiajen-coaching", version: "1.0.0" },
-});
+const handler = createMcpHandler(
+  (server) => {
+    registerTrainingTools(server);
+    registerCoachingTools(server);
+  },
+  {
+    serverInfo: { name: "lugiajen-coaching", version: "1.0.0" },
+  },
+);
 
 const verifyToken = async (
   _req: Request,

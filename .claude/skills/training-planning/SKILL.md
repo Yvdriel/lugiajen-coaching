@@ -13,9 +13,9 @@ Call `get_athlete_context` for the athlete (`list_athletes` to find the id). Rea
 
 ## 2. New plan
 
-1. Target competition and date from the coach (or `competitions` when it is already entered).
-2. Weeks from the 6-week table in `03-periodization-framework`, scaled by age with `04-youth-adaptation-guide`. Fewer than six weeks out: start at the matching week.
-3. `create_plan` with `weeks` (Monday `weekStart`, `targetLoad`, `targetIntensity`, `character`).
+1. Target competition: `list_competitions` (upcoming). Missing: `create_competition`, then `add_competition_entry` per athlete and category.
+2. `suggest_plan_weeks` with the competition date and the athlete's age gives the 6-week table, age-capped. Adjust rows when `learnings` or `recentWeeks` say the athlete needs less (injury, low recent load) and say why.
+3. `create_plan` with `targetCompetitionId` and those `weeks`.
 4. Report the week table to the coach.
 
 ## 3. Plan a week
@@ -36,11 +36,19 @@ Sessions are assumed done. Ask the coach only what did not happen. `skip_session
 
 ## 5. After a competition, scoring card or feedback gesprek
 
-Write what was learned with `add_learning`: `athleteId`, `source` (`competition`, `scoring_card`, `feedback`, `session`), `sourceId` (the competition, card, form or session id), tags from `technical`, `physical`, `mental`, `competition`, `structure`, `warmup`. One learning per finding, phrased so it still reads correctly in six months. A finding about coaching in general, not this athlete: omit `athleteId`. The coach deletes wrong learnings in the app; never rewrite one.
+Competition: `update_competition_entry` with kata per round, results, placement, and the four feedback fields as the coach tells them (ownership framing, relativeren). Scoring: `create_scoring_card` with all 12 criteria the coach dictates; read `get_scoring_history` first so the coach sees the deltas. Repertoire change decided: `assign_kata`, `update_athlete_kata`, `remove_athlete_kata`. Injury or limitation changed: `update_athlete_notes.physicalNotes` for the current summary.
+
+Then write what was learned with `add_learning`: `athleteId`, `source` (`competition`, `scoring_card`, `feedback`, `session`), `sourceId` (the competition, card, form or session id), tags from `technical`, `physical`, `mental`, `competition`, `structure`, `warmup`. One learning per finding, phrased so it still reads correctly in six months. A finding about coaching in general, not this athlete: omit `athleteId`. The coach deletes wrong learnings in the app; never rewrite one; `delete_learning` when the coach says one is wrong.
+
+Quick coach observation, not an insight: `add_athlete_note`.
 
 ## 6. Progress review
 
 `get_kata_progress` gives, per kata, each scoring card with the VLI done between it and the previous card, per section. Read the deltas against the load and say which sections got work and which did not before judging whether load explains growth. Growth per section is not measurable; scoring is per kata.
+
+## 7. Gesprek prep and group planning
+
+Before a feedback gesprek: `get_athlete_timeline` (defaults to since the last completed gesprek) and `list_feedback` for goal and action status. Planning a group session or deciding who needs attention: `get_group_overview`, one row per active athlete with this week's load vs target, last card, next competition, open actions and availability.
 
 ## Style
 

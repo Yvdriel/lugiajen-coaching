@@ -15,5 +15,5 @@ The old setup kept training methodology and athlete context together as markdown
 ## Consequences
 
 - Skills are repo-scoped; planning happens from a checkout of this repo.
-- Scoring cards, competitions and feedback stay app-UI writes; MCP reads them only.
+- Feedback gesprekken stay app-UI writes (the athlete fills their side through the portal); MCP reads them. Competitions, entries, scoring cards and repertoire are writable through MCP since 2026-09-20, so a post-training or post-competition conversation can land its data without switching to the app.
 - A coach who wants to change methodology edits markdown and commits, same as any code change.

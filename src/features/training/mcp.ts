@@ -1,18 +1,22 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { getAthletesList } from "@/lib/queries/athletes";
+import { getAthleteCompetitions } from "@/lib/queries/competitions";
 import { getKataLibrary } from "@/lib/queries/kata";
 import { getScoringHistory } from "@/lib/queries/scoring";
 import {
   addLearning,
   createPlan,
+  deleteLearning,
   createSession,
   deleteSession,
   getActivePlan,
   getPlanById,
   getSessionById,
   getTimingLookup,
+  listAvailability,
   listLearnings,
+  listPlans,
   listSessions,
   replaceAvailability,
   replaceSessionBlocks,
@@ -23,6 +27,8 @@ import {
   upsertTimings,
 } from "@/lib/queries/training";
 import { getAthleteContext, withVli } from "./context";
+import { deletePlan } from "./mcp-data";
+import { suggestPlanWeeks } from "./plan-weeks";
 import { kataProgress, weeklyVli } from "./progress";
 import {
   allowedSplits,
@@ -92,18 +98,33 @@ export function registerTrainingTools(server: McpServer): void {
     {
       title: "List athletes",
       description:
-        "All athletes with age, WKF categories and competition count. Use to find an athleteId.",
+        "All athletes with age, WKF categories, competition count, weekly availability and next competition. Use to find an athleteId or to see who trains on a given weekday.",
       inputSchema: z.object({
         activeOnly: z.boolean().default(true),
       }),
     },
     ({ activeOnly }) =>
       guard(async () => {
+        const today = todayIso();
         const rows = await getAthletesList({
           active: activeOnly ? "active" : "all",
         });
+        const extra = await Promise.all(
+          rows.map(async (a) => {
+            const [availability, comps] = await Promise.all([
+              listAvailability(a.id),
+              getAthleteCompetitions(a.id),
+            ]);
+            const next = comps
+              .filter((c) => c.competitionDate >= today)
+              .sort((x, y) =>
+                x.competitionDate < y.competitionDate ? -1 : 1,
+              )[0];
+            return { availability, next };
+          }),
+        );
         return ok(
-          rows.map((a) => ({
+          rows.map((a, i) => ({
             id: a.id,
             name: `${a.firstName} ${a.lastName}`,
             age: a.age,
@@ -112,6 +133,18 @@ export function registerTrainingTools(server: McpServer): void {
             isActive: a.isActive,
             competitionCount: a.competitionCount,
             lastFeedbackDate: a.lastFeedbackDate,
+            nextCompetition: extra[i].next
+              ? {
+                  name: extra[i].next.competitionName,
+                  date: extra[i].next.competitionDate,
+                }
+              : null,
+            availability: extra[i].availability.map((s) => ({
+              weekday: s.weekday,
+              minutes: s.minutes,
+              label: s.label,
+              coachLed: s.coachLed,
+            })),
           })),
         );
       }),
@@ -263,6 +296,48 @@ export function registerTrainingTools(server: McpServer): void {
   );
 
   // ── Writes ──────────────────────────────────────────────────────────────────
+
+  server.registerTool(
+    "list_plans",
+    {
+      title: "List plans",
+      description:
+        "All plans for an athlete with their week targets, newest first.",
+      inputSchema: z.object({ athleteId: uuid }),
+    },
+    ({ athleteId }) => guard(async () => ok(await listPlans(athleteId))),
+  );
+
+  server.registerTool(
+    "delete_plan",
+    {
+      title: "Delete plan",
+      description:
+        "Delete a plan and its week targets. Sessions keep existing, detached from the plan.",
+      inputSchema: z.object({ planId: uuid }),
+    },
+    ({ planId }) =>
+      guard(async () =>
+        (await deletePlan(planId))
+          ? ok({ deleted: planId })
+          : fail("Unknown plan."),
+      ),
+  );
+
+  server.registerTool(
+    "suggest_plan_weeks",
+    {
+      title: "Suggest plan weeks",
+      description:
+        "Deterministic 6-week periodization table (03-periodization-framework) ending in the competition's ISO week, load and intensity capped by age (U12 load 5 / intensity 3, U14 7 / 3.5, U18 9, adult 10). Fewer weeks keeps the rows closest to competition. Output is create_plan.weeks; adjust before saving if the athlete's history says so.",
+      inputSchema: z.object({
+        competitionDate: isoDate,
+        age: z.number().int().min(6).max(80),
+        weeks: z.number().int().min(1).max(6).default(6),
+      }),
+    },
+    (input) => guard(async () => ok(suggestPlanWeeks(input))),
+  );
 
   server.registerTool(
     "create_plan",
@@ -423,11 +498,28 @@ export function registerTrainingTools(server: McpServer): void {
     {
       title: "Add learning",
       description:
-        "Append a dated insight (author=ai). athleteId omitted = global coaching learning. Tags: short lowercase words (technical, physical, mental, competition, structure, ...). source + sourceId link it to a session, competition, scoring_card or feedback form. Learnings are never edited; the coach deletes wrong ones in the app.",
-      inputSchema: learningInputSchema,
+        "Append a dated insight. author: ai (default) for your own findings, coach when the coach dictates it. athleteId omitted = global coaching learning. Tags: short lowercase words (technical, physical, mental, competition, structure, ...). source + sourceId link it to a session, competition, scoring_card or feedback form. Learnings are never edited; the coach deletes wrong ones in the app.",
+      inputSchema: learningInputSchema.extend({
+        author: z.enum(["coach", "ai"]).default("ai"),
+      }),
     },
-    (input) =>
-      guard(async () => ok({ learningId: await addLearning(input, "ai") })),
+    ({ author, ...input }) =>
+      guard(async () => ok({ learningId: await addLearning(input, author) })),
+  );
+
+  server.registerTool(
+    "delete_learning",
+    {
+      title: "Delete learning",
+      description:
+        "Delete one learning by id (a wrong or superseded insight). Learnings are never edited; delete and add a new one.",
+      inputSchema: z.object({ learningId: uuid }),
+    },
+    ({ learningId }) =>
+      guard(async () => {
+        await deleteLearning(learningId);
+        return ok({ deleted: learningId });
+      }),
   );
 
   server.registerTool(

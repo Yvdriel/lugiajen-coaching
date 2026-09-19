@@ -565,5 +565,5 @@ Postgres and are read and written by Claude Code through the `lugiajen` MCP serv
 - Vocabulary: [`CONTEXT.md`](./CONTEXT.md). Decision record: [`docs/adr/0001`](./docs/adr/0001-methodology-in-git-state-in-db.md).
 - Method: skill `kata-methodology` (references under `.claude/skills/kata-methodology/references/`). Workflow: skill `training-planning`.
 - VLI math is one pure module, `src/features/training/vli.ts`; the app, the portal and the MCP tools all compute through it.
-- Scoring cards, competitions and feedback are written in the app UI only; MCP reads them.
+- Feedback gesprekken are written in the app UI only; MCP reads them. Competitions, scoring cards and repertoire are writable through MCP as well.
 - Learnings are append-only; the coach deletes wrong ones under Notities.
