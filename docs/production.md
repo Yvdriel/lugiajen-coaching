@@ -16,6 +16,11 @@ feature-complete (Ch1–Ch12).
 - `DATABASE_URL` — pooled Neon connection (the 95% single-statement path, `src/lib/db.ts`).
 - `DATABASE_URL_UNPOOLED` — direct connection for drizzle-kit `migrate`/`push` (DDL only).
 - `BETTER_AUTH_SECRET` + `BETTER_AUTH_URL` — Better Auth.
+- `MCP_TOKEN` — static bearer for the Claude Code MCP endpoint (`/api/mcp`, ≥32 chars,
+  `openssl rand -base64 32`). Unset = endpoint returns 401. Locally the same value goes in
+  `LUGIAJEN_MCP_TOKEN` in your shell (read by `.mcp.json`, which points at localhost). To plan
+  against prod, add a user-scoped server once:
+  `claude mcp add --scope user --transport http lugiajen-prod https://<prod>/api/mcp --header "Authorization: Bearer <prod token>"`.
 - Run `pnpm db:migrate` against the production DB before first boot; seed the coach account
   (`pnpm db:seed`) or create it via the invite/seed flow. There is **no public registration**.
 

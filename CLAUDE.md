@@ -555,3 +555,16 @@ function getCategories(dateOfBirth: Date): string[] {
 ---
 
 > **Build execution:** see [`BUILD-PLAN.md`](./BUILD-PLAN.md) — the spec above is decomposed into 12 ordered, checkbox-tracked chapters (one per Claude session). Start each session from the lowest undone chapter there.
+
+## Training module (added 2026-09-18)
+
+Training plans, sessions, blocks, learnings, section timings and availability live in
+Postgres and are read and written by Claude Code through the `lugiajen` MCP server
+(`.mcp.json`, route `src/app/api/mcp/route.ts`, tools in `src/features/training/mcp.ts`).
+
+- Vocabulary: [`CONTEXT.md`](./CONTEXT.md). Decision record: [`docs/adr/0001`](./docs/adr/0001-methodology-in-git-state-in-db.md).
+- Method: skill `kata-methodology` (references under `.claude/skills/kata-methodology/references/`). Workflow: skill `training-planning`.
+- VLI math is one pure module, `src/features/training/vli.ts`; the app, the portal and the MCP tools all compute through it.
+- Feedback gesprekken are written in the app UI only; MCP reads them. Competitions, scoring cards and repertoire are writable through MCP as well.
+- Learnings are append-only; the coach deletes wrong ones under Notities.
+- Training UI: `/athletes/[id]/training` (coach) and `/athlete/view/[token]/training` (portal), views `week | agenda | progress`, plus `/[sessionId]` detail. Shared loader `src/features/training/page-data.ts`, components `src/components/training/*`. Portal writes are limited to skip, actual reps and athlete notes (`src/features/training/actions.ts`); session structure stays MCP-written.

@@ -7,9 +7,11 @@ import {
   integer,
   pgEnum,
   pgTable,
+  real,
   smallint,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -113,6 +115,33 @@ export const clipContextTypeEnum = pgEnum("clip_context_type", [
   "athlete_kata",
 ]);
 export const clipAddedByEnum = pgEnum("clip_added_by", ["coach", "athlete"]);
+
+// ── Training enums ────────────────────────────────────────────────────────────
+// Split = how a kata is cut for training (CONTEXT.md). Size: full 1, half 2, third 3, quarter 4.
+export const splitEnum = pgEnum("split", ["full", "half", "third", "quarter"]);
+// Workout catalog formats (kata-methodology skill, 02-session-architecture) plus
+// review/technical for session parts 4/5 and `other` for non-kata blocks.
+export const blockFormatEnum = pgEnum("block_format", [
+  "review",
+  "technical",
+  "quarter_kata",
+  "emom",
+  "beginning_blast",
+  "burpee_endings",
+  "leg_day",
+  "upper_body",
+  "circuit",
+  "vest_contrast",
+  "other",
+]);
+export const learningSourceEnum = pgEnum("learning_source", [
+  "session",
+  "competition",
+  "scoring_card",
+  "feedback",
+  "manual",
+]);
+export const learningAuthorEnum = pgEnum("learning_author", ["coach", "ai"]);
 
 // ── athletes ──────────────────────────────────────────────────────────────────
 export const athletes = pgTable("athletes", {
@@ -515,6 +544,174 @@ export const athleteNotes = pgTable("athlete_notes", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// ── training_plans (one intended period per athlete; CONTEXT.md "Plan") ────────
+export const trainingPlans = pgTable(
+  "training_plans",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    athleteId: uuid("athlete_id")
+      .notNull()
+      .references(() => athletes.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    startDate: date("start_date").notNull(),
+    endDate: date("end_date").notNull(),
+    targetCompetitionId: uuid("target_competition_id").references(
+      () => competitions.id,
+      { onDelete: "set null" },
+    ),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [index("training_plans_athlete_idx").on(t.athleteId, t.startDate)],
+);
+
+// ── training_plan_weeks (periodization targets per ISO week; replaced wholesale) ─
+export const trainingPlanWeeks = pgTable(
+  "training_plan_weeks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    planId: uuid("plan_id")
+      .notNull()
+      .references(() => trainingPlans.id, { onDelete: "cascade" }),
+    weekStart: date("week_start").notNull(), // Monday
+    targetLoad: smallint("target_load").notNull(),
+    targetIntensity: real("target_intensity").notNull(), // 1..5 in halves
+    character: text("character").notNull(), // "Loading", "Taper", ...
+  },
+  (t) => [
+    uniqueIndex("training_plan_weeks_plan_week_uq").on(t.planId, t.weekStart),
+  ],
+);
+
+// ── training_sessions (one training, one date, one athlete) ────────────────────
+// Done = date <= today AND skipped_at IS NULL (CONTEXT.md "Session"). No status
+// column on purpose: the coach only logs what did NOT happen.
+export const trainingSessions = pgTable(
+  "training_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    athleteId: uuid("athlete_id")
+      .notNull()
+      .references(() => athletes.id, { onDelete: "cascade" }),
+    planId: uuid("plan_id").references(() => trainingPlans.id, {
+      onDelete: "set null",
+    }),
+    date: date("date").notNull(),
+    title: text("title"),
+    notes: text("notes"), // athlete-visible
+    coachNotes: text("coach_notes"), // never in the portal (convention 3)
+    athleteNotes: text("athlete_notes"), // athlete's own words after training; portal-writable
+    skippedAt: timestamp("skipped_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [index("training_sessions_athlete_date_idx").on(t.athleteId, t.date)],
+);
+
+// ── training_blocks (one unit inside a session; CONTEXT.md "Block") ────────────
+// kata_id NULL = non-kata block (warm-up / S&C / kihon): label required, minutes
+// optional, VLI ignores it. kata_id set = split + sections + reps required.
+export const trainingBlocks = pgTable(
+  "training_blocks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => trainingSessions.id, { onDelete: "cascade" }),
+    part: smallint("part").notNull(), // 1..6 session architecture
+    sortOrder: integer("sort_order").notNull().default(0),
+    kataId: uuid("kata_id").references(() => kata.id, { onDelete: "restrict" }),
+    label: text("label"),
+    split: splitEnum("split"),
+    sections: smallint("sections").array(), // 1-based indices within the split
+    reps: smallint("reps"),
+    restRepSec: smallint("rest_rep_sec"),
+    restSectionSec: smallint("rest_section_sec"),
+    rounds: smallint("rounds").notNull().default(1),
+    format: blockFormatEnum("format").notNull().default("technical"),
+    vest: boolean("vest").notNull().default(false),
+    minutes: smallint("minutes"), // non-kata blocks only
+    skipped: boolean("skipped").notNull().default(false),
+    actualReps: smallint("actual_reps"), // overrides reps when set
+    notes: text("notes"),
+    coachNotes: text("coach_notes"),
+  },
+  (t) => [index("training_blocks_session_idx").on(t.sessionId, t.sortOrder)],
+);
+
+// ── learnings (append-only AI/coach memory; CONTEXT.md "Learning") ─────────────
+// athlete_id NULL = global coaching learning. Never updated; the coach deletes in
+// the UI. source_id is polymorphic and intentionally not a FK (like clip contextId).
+export const learnings = pgTable(
+  "learnings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    athleteId: uuid("athlete_id").references(() => athletes.id, {
+      onDelete: "cascade",
+    }),
+    body: text("body").notNull(),
+    tags: text("tags").array().notNull().default([]),
+    source: learningSourceEnum("source").notNull().default("manual"),
+    sourceId: uuid("source_id"),
+    author: learningAuthorEnum("author").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("learnings_athlete_idx").on(t.athleteId, t.createdAt)],
+);
+
+// ── kata_section_timings (seconds per section; athlete_id NULL = kata default) ──
+export const kataSectionTimings = pgTable(
+  "kata_section_timings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    athleteId: uuid("athlete_id").references(() => athletes.id, {
+      onDelete: "cascade",
+    }),
+    kataId: uuid("kata_id")
+      .notNull()
+      .references(() => kata.id, { onDelete: "cascade" }),
+    split: splitEnum("split").notNull(),
+    sectionIndex: smallint("section_index").notNull(),
+    seconds: smallint("seconds").notNull(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    // NULLS NOT DISTINCT so the kata-default row (athlete NULL) is unique too (PG >= 15).
+    unique("kata_section_timings_uq")
+      .on(t.athleteId, t.kataId, t.split, t.sectionIndex)
+      .nullsNotDistinct(),
+  ],
+);
+
+// ── athlete_availability (weekly slots; replaced wholesale per athlete) ─────────
+export const athleteAvailability = pgTable(
+  "athlete_availability",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    athleteId: uuid("athlete_id")
+      .notNull()
+      .references(() => athletes.id, { onDelete: "cascade" }),
+    weekday: smallint("weekday").notNull(), // ISO 1=Mon .. 7=Sun
+    minutes: smallint("minutes").notNull(),
+    label: text("label").notNull(),
+    coachLed: boolean("coach_led").notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
+  },
+  (t) => [
+    index("athlete_availability_athlete_idx").on(t.athleteId, t.weekday),
+  ],
+);
+
 // ── clips (video assets; Cloudflare Stream) ───────────────────────────────────
 // Every asset is created requireSignedURLs=true; bytes never pass through the
 // server. This row holds only metadata + the Stream uid (assetId).
@@ -612,6 +809,10 @@ export const athletesRelations = relations(athletes, ({ many }) => ({
   competitionEntries: many(competitionEntries),
   notes: many(athleteNotes),
   clips: many(clips),
+  trainingPlans: many(trainingPlans),
+  trainingSessions: many(trainingSessions),
+  learnings: many(learnings),
+  availability: many(athleteAvailability),
 }));
 
 export const athleteNotesRelations = relations(athleteNotes, ({ one }) => ({
@@ -626,6 +827,8 @@ export const kataRelations = relations(kata, ({ many }) => ({
   scoringCards: many(kataScoringCards),
   feedbackKataRatings: many(feedbackKataRatings),
   clips: many(clips),
+  trainingBlocks: many(trainingBlocks),
+  sectionTimings: many(kataSectionTimings),
 }));
 
 export const athleteKataRelations = relations(athleteKata, ({ one }) => ({
@@ -768,3 +971,83 @@ export const feedbackClipsRelations = relations(feedbackClips, ({ one }) => ({
   }),
   clip: one(clips, { fields: [feedbackClips.clipId], references: [clips.id] }),
 }));
+
+export const trainingPlansRelations = relations(
+  trainingPlans,
+  ({ one, many }) => ({
+    athlete: one(athletes, {
+      fields: [trainingPlans.athleteId],
+      references: [athletes.id],
+    }),
+    targetCompetition: one(competitions, {
+      fields: [trainingPlans.targetCompetitionId],
+      references: [competitions.id],
+    }),
+    weeks: many(trainingPlanWeeks),
+    sessions: many(trainingSessions),
+  }),
+);
+
+export const trainingPlanWeeksRelations = relations(
+  trainingPlanWeeks,
+  ({ one }) => ({
+    plan: one(trainingPlans, {
+      fields: [trainingPlanWeeks.planId],
+      references: [trainingPlans.id],
+    }),
+  }),
+);
+
+export const trainingSessionsRelations = relations(
+  trainingSessions,
+  ({ one, many }) => ({
+    athlete: one(athletes, {
+      fields: [trainingSessions.athleteId],
+      references: [athletes.id],
+    }),
+    plan: one(trainingPlans, {
+      fields: [trainingSessions.planId],
+      references: [trainingPlans.id],
+    }),
+    blocks: many(trainingBlocks),
+  }),
+);
+
+export const trainingBlocksRelations = relations(trainingBlocks, ({ one }) => ({
+  session: one(trainingSessions, {
+    fields: [trainingBlocks.sessionId],
+    references: [trainingSessions.id],
+  }),
+  kata: one(kata, { fields: [trainingBlocks.kataId], references: [kata.id] }),
+}));
+
+export const learningsRelations = relations(learnings, ({ one }) => ({
+  athlete: one(athletes, {
+    fields: [learnings.athleteId],
+    references: [athletes.id],
+  }),
+}));
+
+export const kataSectionTimingsRelations = relations(
+  kataSectionTimings,
+  ({ one }) => ({
+    athlete: one(athletes, {
+      fields: [kataSectionTimings.athleteId],
+      references: [athletes.id],
+    }),
+    kata: one(kata, {
+      fields: [kataSectionTimings.kataId],
+      references: [kata.id],
+    }),
+  }),
+);
+
+export const athleteAvailabilityRelations = relations(
+  athleteAvailability,
+  ({ one }) => ({
+    athlete: one(athletes, {
+      fields: [athleteAvailability.athleteId],
+      references: [athletes.id],
+    }),
+  }),
+);

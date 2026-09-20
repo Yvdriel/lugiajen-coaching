@@ -15,11 +15,13 @@ import {
   ReelPlayer,
   type ReelPlayerClip,
 } from "@/components/clips/reel-player";
+import { TrainingSummaryCard } from "@/components/training/training-summary-card";
 import { buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isPortalBlocked } from "@/features/athletes/consent";
 import { signedIframeUrl } from "@/features/clips/lib/playback";
 import { playableReelClips } from "@/features/feedback/reel-order";
+import { getTrainingSummary } from "@/features/training/page-data";
 import { buildAthleteStats } from "@/lib/athlete-stats";
 import { calculateAge, getCategories } from "@/lib/categories";
 import { getAthleteByViewToken } from "@/lib/queries/athletes";
@@ -50,6 +52,7 @@ const TABS = [
   "scoring",
   "feedback",
   "competitions",
+  "training",
 ] as const;
 type Tab = (typeof TABS)[number];
 
@@ -97,6 +100,7 @@ export default async function PortalPage({
     kataLib,
     feedbackKataRatings,
     pendingPrepare,
+    trainingSummary,
   ] = await Promise.all([
     getAthleteKata(a.id),
     getLatestCardsPerKata(a.id),
@@ -106,6 +110,7 @@ export default async function PortalPage({
     getKataLibrary(),
     getFeedbackKataRatingsByAthlete(a.id),
     getPendingPrepareForm(a.id),
+    getTrainingSummary(a.id),
   ]);
   const kataNames = new Map(kataLib.map((k) => [k.id, k.name]));
 
@@ -166,7 +171,7 @@ export default async function PortalPage({
   const selectedKataId =
     scoreKata && repertoireKataIds.includes(scoreKata)
       ? scoreKata
-      : repertoireKataIds[0] ?? null;
+      : (repertoireKataIds[0] ?? null);
   const history = selectedKataId
     ? await getScoringHistory(a.id, selectedKataId)
     : [];
@@ -200,6 +205,7 @@ export default async function PortalPage({
           <TabsTrigger value="scoring">{t.scoringCards}</TabsTrigger>
           <TabsTrigger value="feedback">{t.feedback}</TabsTrigger>
           <TabsTrigger value="competitions">{t.competitions}</TabsTrigger>
+          <TabsTrigger value="training">{t.training}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="pt-4">
@@ -286,7 +292,9 @@ export default async function PortalPage({
                   <div className="border-t border-border pt-4 mt-4">
                     <AthleteAnswers
                       form={pendingPrepare}
-                      kataRatings={feedbackKataRatings.get(pendingPrepare.id) ?? []}
+                      kataRatings={
+                        feedbackKataRatings.get(pendingPrepare.id) ?? []
+                      }
                     />
                   </div>
                 </details>
@@ -343,6 +351,13 @@ export default async function PortalPage({
             kataNames={kataNames}
             mode="public"
             latestCompletedMeetingDate={feedback[0]?.meetingDate ?? null}
+          />
+        </TabsContent>
+
+        <TabsContent value="training" className="pt-4">
+          <TrainingSummaryCard
+            summary={trainingSummary}
+            href={`${base}/training`}
           />
         </TabsContent>
       </Tabs>

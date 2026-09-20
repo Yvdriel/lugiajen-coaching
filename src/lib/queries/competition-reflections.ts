@@ -111,3 +111,32 @@ export async function getMeetingCompetitionWindow(
   }
   return [...byComp.values()];
 }
+
+export type AthleteReflectionRow = ReflectionRow & {
+  competitionName: string;
+  competitionDate: string;
+};
+
+/** All of one athlete's competition reflections, newest competition first. */
+export async function getAthleteReflections(
+  athleteId: string,
+): Promise<AthleteReflectionRow[]> {
+  const rows = await db
+    .select({
+      reflection: competitionAthleteReflection,
+      competitionName: competitions.name,
+      competitionDate: competitions.date,
+    })
+    .from(competitionAthleteReflection)
+    .innerJoin(
+      competitions,
+      eq(competitionAthleteReflection.competitionId, competitions.id),
+    )
+    .where(eq(competitionAthleteReflection.athleteId, athleteId))
+    .orderBy(desc(competitions.date));
+  return rows.map((r) => ({
+    ...r.reflection,
+    competitionName: r.competitionName,
+    competitionDate: r.competitionDate,
+  }));
+}
