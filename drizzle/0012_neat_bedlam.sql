@@ -1,0 +1,1 @@
+ALTER TABLE "training_sessions" ADD COLUMN "athlete_notes" text;

@@ -499,3 +499,31 @@ export async function replaceAvailability(
     ),
   ]);
 }
+
+export async function updateSessionAthleteNotes(
+  sessionId: string,
+  athleteNotes: string | null,
+): Promise<void> {
+  await db
+    .update(trainingSessions)
+    .set({ athleteNotes })
+    .where(eq(trainingSessions.id, sessionId));
+}
+
+/** Owner lookup for the coach/portal write guards. */
+export async function getBlockOwner(
+  blockId: string,
+): Promise<{ sessionId: string; athleteId: string } | null> {
+  const [row] = await db
+    .select({
+      sessionId: trainingBlocks.sessionId,
+      athleteId: trainingSessions.athleteId,
+    })
+    .from(trainingBlocks)
+    .innerJoin(
+      trainingSessions,
+      eq(trainingBlocks.sessionId, trainingSessions.id),
+    )
+    .where(eq(trainingBlocks.id, blockId));
+  return row ?? null;
+}

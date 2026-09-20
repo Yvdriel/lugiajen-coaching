@@ -604,6 +604,7 @@ export const trainingSessions = pgTable(
     title: text("title"),
     notes: text("notes"), // athlete-visible
     coachNotes: text("coach_notes"), // never in the portal (convention 3)
+    athleteNotes: text("athlete_notes"), // athlete's own words after training; portal-writable
     skippedAt: timestamp("skipped_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at")

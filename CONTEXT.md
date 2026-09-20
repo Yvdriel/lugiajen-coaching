@@ -46,6 +46,12 @@ Volume, Load, Intensity together. The training load model this platform uses.
 **Section timing**:
 Measured seconds one athlete needs for one section of one kata. Used to estimate session duration.
 
+**Athlete notes**:
+The athlete's own words on a Session, written from the portal after training. Distinct from a Session's notes (coach or AI written, athlete-visible) and coach notes (coach only).
+
+**Agenda**:
+The chronological list of an athlete's Sessions across weeks, independent of any Plan.
+
 **Availability**:
 An athlete's weekly training slots: weekday, minutes, kind, whether coach-led.
 
