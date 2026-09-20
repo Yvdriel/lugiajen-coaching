@@ -25,14 +25,14 @@ Call `get_athlete_context` for the athlete (`list_athletes` to find the id). Rea
 3. Every kata block uses a split in that kata's `allowedSplits`. Category B defaults to thirds.
 4. Every session has a part 2 block (S&C) or a stated reason it is absent. Include the part 1 warm-up as a block with minutes.
 5. Load per kata per session ≤ 10; weekly total against `activePlan.thisWeek.target`.
-6. `create_sessions` with `athleteIds` (group training = all attendees) and the blocks. Omit `planId`; it attaches to the active plan.
+6. `create_sessions` with `athleteIds` (group training = all attendees) and the blocks. Omit `planId`; it attaches to the active plan. `title` is the badge line on the athlete's day header: short, `·`-separated, e.g. `Priority kata · S&C warm-up`.
 7. Read back `list_sessions` for the week. Report to the coach in sheet notation, one line per block: `Enpi 1/3-2/3-3/3 ×10 | 30s | 2min`, then per-session V / L / I and duration, and the weekly total vs target. Name any `missingTimings` and ask for seconds.
 
 Done when every slot has a session, every kata block passed validation, and the weekly load sits within one full-kata equivalent of target or the deviation is explained.
 
 ## 4. Log a week
 
-Sessions are assumed done. Ask the coach only what did not happen. `skip_session` for a missed training; `update_block` with `skipped` or `actualReps` for partial work. Then `get_weekly_vli` and report actual vs target.
+Sessions are assumed done. Read `athleteNotes` on each session first: the athlete logs skips, actual reps and notes from the portal, so most of what happened is already there. Ask the coach only what is still unclear. `skip_session` for a missed training; `update_block` with `skipped` or `actualReps` for partial work. Then `get_weekly_vli` and report actual vs target.
 
 ## 5. After a competition, scoring card or feedback gesprek
 

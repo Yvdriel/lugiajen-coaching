@@ -567,3 +567,4 @@ Postgres and are read and written by Claude Code through the `lugiajen` MCP serv
 - VLI math is one pure module, `src/features/training/vli.ts`; the app, the portal and the MCP tools all compute through it.
 - Feedback gesprekken are written in the app UI only; MCP reads them. Competitions, scoring cards and repertoire are writable through MCP as well.
 - Learnings are append-only; the coach deletes wrong ones under Notities.
+- Training UI: `/athletes/[id]/training` (coach) and `/athlete/view/[token]/training` (portal), views `week | agenda | progress`, plus `/[sessionId]` detail. Shared loader `src/features/training/page-data.ts`, components `src/components/training/*`. Portal writes are limited to skip, actual reps and athlete notes (`src/features/training/actions.ts`); session structure stays MCP-written.
