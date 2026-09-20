@@ -61,6 +61,18 @@ export function withVli(
   };
 }
 
+/**
+ * Portal copy: coachNotes never leave the server for the athlete (convention 3).
+ * Applied before rows reach client components, whose props land in the HTML.
+ */
+export function forPortal<S extends SessionRow>(s: S): S {
+  return {
+    ...s,
+    coachNotes: null,
+    blocks: s.blocks.map((b) => ({ ...b, coachNotes: null })),
+  };
+}
+
 export async function getAthleteContext(athleteId: string, today: string) {
   const a = await getAthleteById(athleteId);
   if (!a) return null;

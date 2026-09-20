@@ -218,9 +218,14 @@ export async function listSessions(
   return attachBlocks(rows);
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getSessionById(
   sessionId: string,
 ): Promise<SessionRow | null> {
+  // Path segments reach here unvalidated; a malformed id is a miss, not a 500.
+  if (!UUID_RE.test(sessionId)) return null;
   const rows = await db
     .select()
     .from(trainingSessions)
