@@ -7,9 +7,10 @@ import {
   listSessions,
   listTimings,
   type PlanRow,
+  type SessionRow,
   type TimingRow,
 } from "@/lib/queries/training";
-import { type SessionWithVli, withVli } from "./context";
+import { forPortal, type SessionWithVli, withVli } from "./context";
 import { weeklyVli, type WeekVli } from "./progress";
 import { allowedSplits } from "./schema";
 import { addDays, todayIso, type Split, weekStartOf } from "./vli";
@@ -60,8 +61,13 @@ export function parseView(v: string | undefined): TrainingView {
 export async function loadTrainingPage(
   athleteId: string,
   q: { view?: string; week?: string },
+  mode: "coach" | "public",
 ): Promise<TrainingPageData> {
   const today = todayIso();
+  const prep = (s: SessionRow) => {
+    const v = withVli(s, timing, today);
+    return mode === "public" ? forPortal(v) : v;
+  };
   const view = parseView(q.view);
   const weekStart = weekStartOf(q.week && ISO.test(q.week) ? q.week : today);
 
@@ -76,9 +82,7 @@ export async function loadTrainingPage(
     plan && plan.endDate > weekStart ? weekStartOf(plan.endDate) : weekStart,
     6,
   );
-  const sessions = (await listSessions(athleteId, stripFrom, stripTo)).map(
-    (s) => withVli(s, timing, today),
-  );
+  const sessions = (await listSessions(athleteId, stripFrom, stripTo)).map(prep);
   const strip = weeklyVli({
     sessions,
     planWeeks: plan?.weeks ?? [],
@@ -106,7 +110,7 @@ export async function loadTrainingPage(
   if (view === "agenda") {
     const all = (
       await listSessions(athleteId, addDays(today, -182), addDays(today, 365))
-    ).map((s) => withVli(s, timing, today));
+    ).map(prep);
     base.agenda = {
       upcoming: groupByMonth(all.filter((s) => s.date >= today)),
       past: groupByMonth(all.filter((s) => s.date < today).reverse()),

@@ -137,3 +137,18 @@
     @apply font-sans;
   }
 }
+/* Training pages print as the week sheet only. */
+@media print {
+  body:has([data-training]) :is(nav, aside, header, .print-hide) {
+    display: none !important;
+  }
+  [data-training] .md\:hidden {
+    display: none !important;
+  }
+  [data-training] .md\:grid {
+    display: grid !important;
+  }
+  [data-training] .md\:block {
+    display: block !important;
+  }
+}

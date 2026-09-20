@@ -14,8 +14,8 @@ import {
 import { LearningsList } from "@/components/display/learnings-list";
 import { ScoringHistoryPanel } from "@/components/display/scoring-history-panel";
 import { StatsOverview } from "@/components/display/stats-overview";
-import { TrainingPlan } from "@/components/display/training-plan";
 import { DeleteLearningButton } from "@/components/training/delete-learning-button";
+import { TrainingSummaryCard } from "@/components/training/training-summary-card";
 import { ClipsTab } from "@/components/clips/clips-tab";
 import { AssignKataForm } from "@/components/kata/assign-kata-form";
 import { AthleteKataEditForm } from "@/components/kata/athlete-kata-edit-form";
@@ -26,9 +26,7 @@ import {
   isPortalBlocked,
 } from "@/features/athletes/consent";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { withVli } from "@/features/training/context";
-import { weeklyVli } from "@/features/training/progress";
-import { addDays, todayIso, weekStartOf } from "@/features/training/vli";
+import { getTrainingSummary } from "@/features/training/page-data";
 import { buildAthleteStats } from "@/lib/athlete-stats";
 import { calculateAge, getCategories } from "@/lib/categories";
 import { getAthleteById, getAthleteNotes } from "@/lib/queries/athletes";
@@ -48,12 +46,7 @@ import {
   getScoringHistory,
   getScoringSeriesByKata,
 } from "@/lib/queries/scoring";
-import {
-  getActivePlan,
-  getTimingLookup,
-  listLearnings,
-  listSessions,
-} from "@/lib/queries/training";
+import { listLearnings } from "@/lib/queries/training";
 import { getLocale, getMessages } from "@/i18n/server";
 import { formatDate, formatDateTime } from "@/i18n/format";
 
@@ -100,8 +93,7 @@ export default async function AthletePage({
     kataLib,
     clips,
     learnings,
-    plan,
-    timing,
+    trainingSummary,
   ] = await Promise.all([
     getAthleteNotes(id),
     getAthleteKata(id),
@@ -113,23 +105,8 @@ export default async function AthletePage({
     getKataLibrary(),
     getAthleteClips(id),
     listLearnings({ athleteId: id, includeGlobal: true, limit: 200 }),
-    getActivePlan(id, todayIso()),
-    getTimingLookup(id),
+    getTrainingSummary(id),
   ]);
-  // Training tab: the active plan's whole range, or the last 4 weeks without one.
-  const today = todayIso();
-  const trainingFrom = plan?.startDate ?? addDays(weekStartOf(today), -21);
-  const trainingTo = plan?.endDate ?? addDays(weekStartOf(today), 6);
-  const trainingSessions = (
-    await listSessions(id, trainingFrom, trainingTo)
-  ).map((s) => withVli(s, timing, today));
-  const trainingWeeks = weeklyVli({
-    sessions: trainingSessions,
-    planWeeks: plan?.weeks ?? [],
-    today,
-    from: trainingFrom,
-    to: trainingTo,
-  });
   const kataNames = new Map(kataLib.map((k) => [k.id, k.name]));
   // Latest meeting's action items (rows now) feed the focus-points panel.
   const latestActions = (
@@ -401,11 +378,9 @@ export default async function AthletePage({
         </TabsContent>
 
         <TabsContent value="training" className="pt-4">
-          <TrainingPlan
-            plan={plan}
-            weeks={trainingWeeks}
-            sessions={trainingSessions}
-            mode="coach"
+          <TrainingSummaryCard
+            summary={trainingSummary}
+            href={`/athletes/${a.id}/training`}
           />
         </TabsContent>
 
